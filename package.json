@@ -1,11 +1,16 @@
 {
   "name": "kipro",
-  "version": "0.0.1",
+  "version": "1.0.0",
+	"api_version": "1.0.0",
+	"keywords": [ "Recording" ],
+	"manufacturer": "AJA",
+	"product": "Ki Pro Ultra",
+	"shortname": "kipro",
   "description": "Module to control the AJA KiPro",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Per Roine",
+  "author": "Per Røine <per.roine@gmail.com>",
   "license": "MIT"
 }
