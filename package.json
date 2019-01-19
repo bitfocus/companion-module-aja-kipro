@@ -1,16 +1,17 @@
 {
-  "name": "kipro",
-  "version": "1.0.0",
+ 	"name": "aja-kipro",
+	"version": "1.0.0",
+	"legacy": ["kipro"],
 	"api_version": "1.0.0",
 	"keywords": [ "Recording" ],
 	"manufacturer": "AJA",
 	"product": "Ki Pro Ultra",
 	"shortname": "kipro",
-  "description": "Module to control the AJA KiPro",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Per Røine <per.roine@gmail.com>",
-  "license": "MIT"
+	"description": "Module to control the AJA KiPro",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "Per Røine <per.roine@gmail.com>",
+	"license": "MIT"
 }
