@@ -1,9 +1,13 @@
 {
- 	"name": "aja-kipro",
-	"version": "1.0.0",
-	"legacy": ["kipro"],
+	"name": "aja-kipro",
+	"version": "1.0.1",
+	"legacy": [
+		"kipro"
+	],
 	"api_version": "1.0.0",
-	"keywords": [ "Recording" ],
+	"keywords": [
+		"Recording"
+	],
 	"manufacturer": "AJA",
 	"product": "Ki Pro Ultra",
 	"shortname": "kipro",
