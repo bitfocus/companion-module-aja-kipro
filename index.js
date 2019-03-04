@@ -79,6 +79,7 @@ instance.prototype.actions = function(system) {
 		'rev':     { label: 'Fast Reverse'},
 		'stepF':   { label: 'Step Forward'},
 		'stepB':   { label: 'Step Back'},
+		'format':  { label: 'Stop and Format'},
 		'load': {
 			label: 'Load Clip(id)',
 			options: [
@@ -107,10 +108,9 @@ instance.prototype.actions = function(system) {
 	});
 }
 
-instance.prototype.action = function(action) {
-	var self = this;
-	var cmd
-	opt = action.options
+instance.prototype.action = async function(action) {
+	var cmd = null;
+	opt = action.options;
 	debug('action: ', action);
 
 	switch (action.action) {
@@ -159,21 +159,44 @@ instance.prototype.action = function(action) {
 			cmd = 'LoopPlay&value=' + opt.idx;
 			break;
 
+		case 'format':
+			var run_format = function(cmd, timeout) {
+				return new Promise(resolve => {
+					setTimeout(function() {
+						resolve(this.run_cmd(cmd));
+					}.bind(this), timeout);
+				});
+			}.bind(this);
 
+			// Stop current clip, if playing
+			await run_format('TransportCommand&value=4', 0);
 
+			// Set format option
+			await run_format('StorageCommand&value=4&configid=0', 2000);
+
+			// Take the format command
+			await run_format('CustomTake&value=1&configid=0', 2000);
+			break;
 	}
 
+	if(cmd) {
+		this.run_cmd(cmd);
+	}
+};
+
+instance.prototype.run_cmd = function(cmd) {
+	var self = this;
+	var cmd;
 
 	if (cmd !== undefined) {
-			self.system.emit('rest_get', 'http://' + self.config.host + '/config?action=set&paramid=eParamID_' + cmd,function (err, data, response) {
-				if (!err) {
-						self.log('Error from kipro: ' + result);
-						return;
-						}
-					console.log("Result from REST: ", result);
-					});
-		}
-
+		self.system.emit('rest_get', 'http://' + self.config.host + '/config?action=set&paramid=eParamID_' + cmd,function (err, data, response) {
+			if (!err) {
+				self.log('Error from kipro: ' + result);
+				return;
+			}
+			console.log("Result from REST: ", result);
+		});
+	}
 };
 
 instance_skel.extendedBy(instance);
