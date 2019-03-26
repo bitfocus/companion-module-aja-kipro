@@ -168,8 +168,9 @@ instance.prototype.action = async function(action) {
 				});
 			}.bind(this);
 
-			// Stop current clip, if playing
+			// Stop current clip completely, if playing
 			await run_format('TransportCommand&value=4', 0);
+			await run_format('TransportCommand&value=4', 1000);
 
 			// Set format option
 			await run_format('StorageCommand&value=4&configid=0', 2000);
