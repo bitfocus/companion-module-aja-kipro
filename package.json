@@ -1,6 +1,6 @@
 {
 	"name": "aja-kipro",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"legacy": [
 		"kipro"
 	],
@@ -9,7 +9,10 @@
 		"Recording"
 	],
 	"manufacturer": "AJA",
-	"product": "Ki Pro Ultra",
+	"product": [
+		"Ki Pro",
+		"Ki Pro Ultra"
+	],
 	"shortname": "kipro",
 	"description": "Module to control the AJA KiPro",
 	"main": "index.js",

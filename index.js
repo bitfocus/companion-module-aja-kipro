@@ -49,7 +49,7 @@ instance.prototype.config_fields = function () {
 			id: 'info',
 			width: 12,
 			label: 'Information',
-			value: 'This module will control Aja KiPro series '
+			value: 'This module will control the Aja KiPro series.'
 		},
 		{
 			type: 'textinput',
@@ -70,15 +70,15 @@ instance.prototype.destroy = function() {
 instance.prototype.actions = function(system) {
 	var self = this;
 	self.system.emit('instance_actions', self.id, {
-		'play':    { label: 'Play'},
-		'stop':    { label: 'Stop'},
-		'rec':     { label: 'Record'},
-		'next':    { label: 'Next Clip'},
-		'prv':     { label: 'Previous Clip'},
-		'ff':      { label: 'Fast Forward'},
-		'rev':     { label: 'Fast Reverse'},
-		'stepF':   { label: 'Step Forward'},
-		'stepB':   { label: 'Step Back'},
+		'play':		{ label: 'Play'},
+		'stop':		{ label: 'Stop'},
+		'rec':		{ label: 'Record'},
+		'next':		{ label: 'Next Clip'},
+		'prv': 		{ label: 'Previous Clip'},
+		'ff':		{ label: 'Fast Forward'},
+		'rev':		{ label: 'Fast Reverse'},
+		'stepF':	{ label: 'Step Forward'},
+		'stepB':	{ label: 'Step Back'},
 		'load': {
 			label: 'Load Clip(id)',
 			options: [
@@ -152,17 +152,13 @@ instance.prototype.action = function(action) {
 			break;
 
 		case 'load':
-			cmd = 'D1Clip&value=' + opt.idx;
+			cmd = 'GoToClip&value=' + opt.idx;
 			break;
 
 		case 'loop':
 			cmd = 'LoopPlay&value=' + opt.idx;
 			break;
-
-
-
 	}
-
 
 	if (cmd !== undefined) {
 			self.system.emit('rest_get', 'http://' + self.config.host + '/config?action=set&paramid=eParamID_' + cmd,function (err, data, response) {
