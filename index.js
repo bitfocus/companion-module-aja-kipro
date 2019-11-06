@@ -70,37 +70,37 @@ instance.prototype.destroy = function() {
 instance.prototype.actions = function(system) {
 	var self = this;
 	self.system.emit('instance_actions', self.id, {
-		'play':		{ label: 'Play'},
-		'stop':		{ label: 'Stop'},
-		'rec':		{ label: 'Record'},
-		'next':		{ label: 'Next Clip'},
-		'prv': 		{ label: 'Previous Clip'},
-		'ff':		{ label: 'Fast Forward'},
-		'rev':		{ label: 'Fast Reverse'},
-		'stepF':	{ label: 'Step Forward'},
-		'stepB':	{ label: 'Step Back'},
-		'load': {
+		'play':   { label: 'Play'},
+		'stop':   { label: 'Stop'},
+		'rec':    { label: 'Record'},
+		'next':   { label: 'Next Clip'},
+		'prv':    { label: 'Previous Clip'},
+		'ff':     { label: 'Fast Forward'},
+		'rev':    { label: 'Fast Reverse'},
+		'stepF':  { label: 'Step Forward'},
+		'stepB':  { label: 'Step Back'},
+		'load':   {
 			label: 'Load Clip(id)',
 			options: [
 				{
-					 type: 'textinput',
-					 label: 'Clip Name',
-					 id: 'idx',
-					 default: ''
+					type: 'textinput',
+					label: 'Clip Name',
+					id: 'idx',
+					default: ''
 				}
 			]
 		},
-		'loop': {
+		'loop':   {
 			label: 'Loop Clip',
 			options: [
 				{
-					 type: 'dropdown',
-					 label: 'On / Off',
-					 id: 'idx',
-					 choices: [
-						 { id: '0', label: 'Loop Off' },
-						 { id: '1', label: 'Loop On' }
-					 ]
+					type: 'dropdown',
+					label: 'On / Off',
+					id: 'idx',
+					choices: [
+						{ id: '0', label: 'Loop Off' },
+						{ id: '1', label: 'Loop On' }
+					]
 				}
 			]
 		},
@@ -109,8 +109,8 @@ instance.prototype.actions = function(system) {
 
 instance.prototype.action = function(action) {
 	var self = this;
-	var cmd
-	opt = action.options
+	var cmd;
+	opt = action.options;
 	debug('action: ', action);
 
 	switch (action.action) {
@@ -161,13 +161,12 @@ instance.prototype.action = function(action) {
 	}
 
 	if (cmd !== undefined) {
-			self.system.emit('rest_get', 'http://' + self.config.host + '/config?action=set&paramid=eParamID_' + cmd,function (err, data, response) {
-				if (!err) {
-						self.log('Error from kipro: ' + result);
-						return;
-						}
-					console.log("Result from REST: ", result);
-					});
+		self.system.emit('rest_get', 'http://' + self.config.host + '/config?action=set&paramid=eParamID_' + cmd,function (err, data, response) {
+			if (!err) {
+				self.log('Error from kipro: ' + result);
+				return;
+				}
+			});
 		}
 
 };
