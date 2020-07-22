@@ -49,7 +49,7 @@ instance.prototype.config_fields = function () {
 			id: 'info',
 			width: 12,
 			label: 'Information',
-			value: 'This module will control Aja KiPro series '
+			value: 'This module will control the Aja KiPro series.'
 		},
 		{
 			type: 'textinput',
@@ -84,31 +84,32 @@ instance.prototype.actions = function(system) {
 			label: 'Load Clip(id)',
 			options: [
 				{
-					 type: 'textinput',
-					 label: 'Clip Name',
-					 id: 'idx',
-					 default: ''
+					type: 'textinput',
+					label: 'Clip Name',
+					id: 'idx',
+					default: ''
 				}
 			]
 		},
-		'loop': {
+		'loop':   {
 			label: 'Loop Clip',
 			options: [
 				{
-					 type: 'dropdown',
-					 label: 'On / Off',
-					 id: 'idx',
-					 choices: [
-						 { id: '0', label: 'Loop Off' },
-						 { id: '1', label: 'Loop On' }
-					 ]
+					type: 'dropdown',
+					label: 'On / Off',
+					id: 'idx',
+					choices: [
+						{ id: '0', label: 'Loop Off' },
+						{ id: '1', label: 'Loop On' }
+					]
 				}
 			]
 		},
 	});
 }
 
-instance.prototype.action = async function(action) {
+instance.prototype.action = function(action) {
+	var self = this;
 	var cmd = null;
 	opt = action.options;
 	debug('action: ', action);
@@ -152,7 +153,7 @@ instance.prototype.action = async function(action) {
 			break;
 
 		case 'load':
-			cmd = 'D1Clip&value=' + opt.idx;
+			cmd = 'GoToClip&value=' + opt.idx;
 			break;
 
 		case 'loop':
@@ -194,10 +195,10 @@ instance.prototype.run_cmd = function(cmd) {
 			if (!err) {
 				self.log('Error from kipro: ' + result);
 				return;
-			}
-			console.log("Result from REST: ", result);
-		});
-	}
+				}
+			});
+		}
+
 };
 
 instance_skel.extendedBy(instance);
