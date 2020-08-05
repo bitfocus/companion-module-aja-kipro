@@ -20,3 +20,4 @@ Add an action to a button and choose the action you wish to use.
 * Step Reverse/Back
 * Load Clip
 * Loop Clip
+* Format
