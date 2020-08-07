@@ -634,17 +634,17 @@ class instance extends instance_skel {
 					},
 					{
 						action: 'stop',
-						delay: 1
-					},
-					{
-						action: 'format',
-						delay: 1
+						delay: 500
 					},
 					{
 						action: 'customTake',
 						options:{
 							idx: 0
 						},
+						delay: 200
+					},
+					{
+						action: 'format',
 						delay: 1
 					}
 				],
