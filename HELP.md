@@ -22,6 +22,38 @@ Add an action to a button and choose the action you wish to use.
 * Load Clip
 * Loop Clip
 * Format
+* Erase Clip
+* Set Custom Take Number
 
 **Available feedback:**
 * Transport State
+
+**Available Variables:**
+* Timecode Hours
+* Timecode Minutes
+* Timecode Seconds
+* Timecode Frames
+* Transport State
+* Current Clip Name
+* Remaining Media Available
+* System Name
+
+**Available Presets:**
+* Transport control
+  * Play
+  * Stop
+  * Record
+  * Next Clip
+  * Previous Clip
+  * Fast Forward
+  * Rewind
+  * Step Forward
+  * Step Backward
+* Timecode
+  * Full Timecode
+  * Timecode Hours
+  * Timecode Minutes
+  * Timecode Seconds
+  * Timecode Frames
+* Functions
+  * Stop and Format

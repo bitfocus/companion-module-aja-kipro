@@ -1,6 +1,6 @@
 {
 	"name": "aja-kipro",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"legacy": [
 		"kipro"
 	],
@@ -19,6 +19,9 @@
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
-	"author": "Per Røine <per.roine@gmail.com>",
+	"contributors": [
+		"Per Røine <per.roine@gmail.com>",
+		"Todd Murphy <murphytodd4@gmail.com>"
+	],
 	"license": "MIT"
 }
