@@ -19,7 +19,7 @@ Add an action to a button and choose the action you wish to use.
 * Fast Reverse
 * Step Forward
 * Step Reverse/Back
-* Load Clip
+* Load Clip By Name (Requires extension)
 * Loop Clip
 * Format
 * Erase Clip

@@ -153,7 +153,7 @@ class instance extends instance_skel {
 				]
 			},
 			'load': {
-				label: 'Load Clip(id)',
+				label: 'Load Clip By Name',
 				options: [
 					{
 						type: 'textinput',
