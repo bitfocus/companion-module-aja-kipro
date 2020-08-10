@@ -3,8 +3,8 @@
 This module will allow you to control the AJA Ki Pro and Ki Pro Ultra series recorders.
 
 ### Configuration
-* Enter the IP Address of the device in the instance settings.
-* Set a request interval in milliseconds. Setting it to 0 will stop polling.
+* Enter the IP Address of the KiPro.
+* Enter the password for the KiPro. If authentication is not used leave blank.
 
 ### To use the module
 Add an action to a button and choose the action you wish to use.

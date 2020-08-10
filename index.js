@@ -1,4 +1,5 @@
 const instance_skel = require('../../instance_skel');
+var Client  = require('node-rest-client').Client;
 
 class instance extends instance_skel {
 	constructor(system, id, config) {
@@ -6,16 +7,10 @@ class instance extends instance_skel {
 
 		this.waiting = false;
 		this.connectionID = 0;
+		this.authenticated = false;
+		this.authToken = "";
 
 		this.actions(); // export actions
-
-
-		if (this.config.requestInterval === undefined) {
-			this.config.requestInterval = 1;
-		}
-		else if (this.config.requestInterval > 50) {
-			this.config.requestInterval = 50;
-		}
 
 		// Example: When this script was committed, a fix needed to be made
 		// this will only be run if you had an instance of an older "version" before.
@@ -32,57 +27,23 @@ class instance extends instance_skel {
 	}
 
 	updateConfig(config) {
-		var restartTimer = false;
 		var reconnect = false;
 
-		if (config.requestInterval != this.config.requestInterval) {
-			restartTimer = true;
-		}
-
-		if (config.host != this.config.host) {
+		if ((config.host != this.config.host) || (config.password != this.config.password)) {
 			reconnect = true;
 		}
 
 		this.config = config;
 
-		if (restartTimer) {
-			if (this.config.requestInterval === 0) { //Timers need to stop and the state set
-				this.status(this.STATE_OK);
-				this.stopConnectTimer();
-				this.stopRequestTimer();
-			}
-			else { //Requests should be happening
-				if (this.requestTimer !== undefined) { //Timer was running so restart it with a new timeout
-					this.startRequestTimer();
-				}
-				else {
-					this.startConnectTimer();
-				}
-				this.status(this.STATE_UNKNOWN);
-			}
-		}
-
 		if (reconnect) {
-			if (this.config.requestInterval === 0) { //Timers need to stop and the state set
-				this.status(this.STATE_OK);
-				this.stopConnectTimer();
-				this.stopRequestTimer();
-			}
-			else { //Requests should be happening
-				this.stopRequestTimer();
-				this.startConnectTimer();
-				this.status(this.STATE_UNKNOWN);
-			}
+			this.stopRequestTimer();
+			this.startConnectTimer();
+			this.status(this.STATE_UNKNOWN);
 		}
 	}
 
 	init() {
-		if (this.config.requestInterval === 0) {
-			this.status(this.STATE_OK);
-		}
-		else {
-			this.status(this.STATE_UNKNOWN);
-		}
+		this.status(this.STATE_UNKNOWN);
 
 		this.initVariables();
 		this.init_presets();
@@ -108,22 +69,18 @@ class instance extends instance_skel {
 				regex: this.REGEX_IP
 			},
 			{
-				type: 'number',
-				id: 'requestInterval',
-				label: 'Request Interval',
-				width: 12,
-				min: 0,
-				max: 50,
-				default: 1,
-				required: true
-			},
-			{
 				type: 'text',
 				id: 'info',
 				width: 12,
-				label: 'Request Interval',
-				value: 'Request interval sets how frequently companion will poll the KiPro in milliseconds. 0=disabled'
+				label: 'Authentication',
+				value: 'Leave password blank for no authentication'
 			},
+			{
+				type: 'textinput',
+				id: 'password',
+				label: 'Password',
+				width: 12,
+			}
 		]
 	}
 
@@ -847,13 +804,22 @@ class instance extends instance_skel {
 
 		// Stop the timer if it was already running
 		this.stopConnectTimer();
-		if (this.config.requestInterval > 0) {
-			this.log('info', "Starting connectTimer");
-			// Create a reconnect timer to watch the socket. If disconnected try to connect.
-			this.connectTimer = setInterval(function() {
+
+		this.log('info', "Starting connectTimer");
+		// Create a reconnect timer to watch the socket. If disconnected try to connect.
+		this.connectTimer = setInterval(function() { //Auth Enabled
+			if (this.config.password !== "") {
+				if (!this.authenticated) { //Not Authenticated so send password
+					this.doAuthenticate();
+				}
+				else{ //Authenticated so connect
+					this.doConnect();
+				}
+			}
+			else { //Auth Disabled
 				this.doConnect();
-			}.bind(this), timeout);
-		}
+			}
+		}.bind(this), timeout);
 	}
 
 	stopConnectTimer() {
@@ -870,12 +836,10 @@ class instance extends instance_skel {
 		this.stopRequestTimer();
 		this.stopConnectTimer();
 
-		if (this.config.requestInterval > 0) {
-			this.log('info', "Starting requestTimer");
-			this.requestTimer = setInterval(function() {
-				this.doRequestUpdate();
-			}.bind(this), this.config.requestInterval);
-		}
+		this.log('info', "Starting requestTimer");
+		this.requestTimer = setInterval(function() {
+			this.doRequestUpdate();
+		}.bind(this), 1); //Update as fast as possible. KiPros wait for changes before they respond
 	}
 
 	stopRequestTimer() {
@@ -887,19 +851,56 @@ class instance extends instance_skel {
 	}
 
 	doCommand(cmd) {
+		var extraHeadders = {}
+
+		if(this.config.password !== ""){
+			extraHeadders["Cookie"] = this.authToken;
+		}
+
 		this.system.emit('rest_get', 'http://' + this.config.host + '/config?action=set&paramid=eParamID_' + cmd, function(err, data, response) {
 			if (err) {
 				this.log('warn', 'Error from kipro: ' + result);
 				return;
 			}
-		}.bind(this));
+		}.bind(this), extraHeadders);
+	}
+
+	doAuthenticate() {
+		if (!this.waiting) {
+			this.waiting = true;
+
+			let data = "password_provided="+this.config.password;
+
+			var args = {
+				data: data,
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+					"User-Agent": "curl/7.64.1",
+					"Accept": "*/*"
+				}
+			};
+
+			var client = new Client();
+
+			client.post('http://' + this.config.host + '/authenticator/login', args, function (data, response) {
+				this.authReply(null, { data: data, response: response })
+			}.bind(this)).on('error', function(error) {
+				this.authReply(true,{ error: error })
+			}.bind(this));
+		}
 	}
 
 	doConnect() {
 		if (!this.waiting) {
 			this.waiting = true;
 
-			this.system.emit('rest_get', 'http://' + this.config.host + '/json?action=connect&configid=0', this.handleReply.bind(this));
+			var extraHeadders = {}
+
+			if(this.config.password !== ""){
+				extraHeadders["Cookie"] = this.authToken;
+			}
+
+			this.system.emit('rest_get', 'http://' + this.config.host + '/json?action=connect&configid=0', this.handleReply.bind(this), extraHeadders);
 		}
 	}
 
@@ -907,7 +908,60 @@ class instance extends instance_skel {
 		if (!this.waiting) {
 			this.waiting = true;
 
-			this.system.emit('rest_get', 'http://' + this.config.host + "/json?action=wait_for_config_events&configid=0&connectionid="+this.connectionID, this.handleReply.bind(this));
+			var extraHeadders = {}
+
+			if(this.config.password !== ""){
+				extraHeadders["Cookie"] = this.authToken;
+			}
+
+			this.system.emit('rest_get', 'http://' + this.config.host + "/json?action=wait_for_config_events&configid=0&connectionid="+this.connectionID, this.handleReply.bind(this), extraHeadders);
+		}
+	}
+
+	authReply(err, data, response) {
+		if (data.data) {
+			if (data.response.statusCode === 200) {
+				if (data.data.length) {
+					if (data.data.length > 0) {
+						try {
+							let objJson = JSON.parse(data.data.toString());
+							//If connection response
+							if (objJson['login'] !== undefined) {
+								if(objJson['login'] === "success"){
+									this.authenticated = true;
+									this.authToken = data.response.headers['set-cookie'][0];
+									this.log('debug', 'Authenticated');
+								}
+								else if(objJson['login'] === "Login Failed - Passwords did not match"){
+									this.status(this.STATE_ERROR);
+									this.authenticated = false;
+									this.authToken = "";
+									this.log('error', 'Password does not match');
+								}
+							}
+						} catch(error) {}
+					}
+				}
+			}
+			else {
+				this.status(this.STATE_ERROR, err);
+				this.waiting = false;
+				return;
+			}
+		}
+		if (err) {
+			this.log('error', 'Error connecting to KiPro');
+			this.status(this.STATE_ERROR, err);
+			this.authenticated = false;
+			this.authToken = "";
+			this.stopRequestTimer();
+			this.startConnectTimer();
+			this.waiting = false;
+			return;
+		}
+		else {
+			this.waiting = false;
+			return;
 		}
 	}
 
@@ -1149,6 +1203,8 @@ class instance extends instance_skel {
 					this.log('error', 'Status'+data.response.statusCode);
 				}
 				this.status(this.STATE_ERROR, err);
+				this.authenticated = false;
+				this.authToken = "";
 				this.stopRequestTimer();
 				this.startConnectTimer();
 				this.waiting = false;
@@ -1158,6 +1214,8 @@ class instance extends instance_skel {
 		if (err) {
 			this.log('error', 'Error connecting to KiPro');
 			this.status(this.STATE_ERROR, err);
+			this.authenticated = false;
+			this.authToken = "";
 			this.stopRequestTimer();
 			this.startConnectTimer();
 			this.waiting = false;
