@@ -6,16 +6,15 @@ class instance extends instance_skel {
 
 		this.waiting = false;
 		this.connectionID = 0;
-		this.currentState = {
-			internal : {},
-			dynamicVariables : {},
-		};
 
 		this.actions(); // export actions
 
 
-		if(this.config.requestInterval == undefined){
+		if (this.config.requestInterval === undefined) {
 			this.config.requestInterval = 1;
+		}
+		else if (this.config.requestInterval > 50) {
+			this.config.requestInterval = 50;
 		}
 
 		// Example: When this script was committed, a fix needed to be made
@@ -34,36 +33,54 @@ class instance extends instance_skel {
 
 	updateConfig(config) {
 		var restartTimer = false;
+		var reconnect = false;
 
-		if(config.requestInterval != this.config.requestInterval){ //Not checking port since it isn't user editable currently.
+		if (config.requestInterval != this.config.requestInterval) {
 			restartTimer = true;
+		}
+
+		if (config.host != this.config.host) {
+			reconnect = true;
 		}
 
 		this.config = config;
 
-		if(restartTimer) {
-			if(this.config.requestInterval == 0){ //Timers need to stop and the state set
+		if (restartTimer) {
+			if (this.config.requestInterval === 0) { //Timers need to stop and the state set
 				this.status(this.STATE_OK);
 				this.stopConnectTimer();
 				this.stopRequestTimer();
 			}
-			else{ //Requests should be happening
-				if(this.requestTimer !== undefined){ //Timer was running so restart it with a new timeout
+			else { //Requests should be happening
+				if (this.requestTimer !== undefined) { //Timer was running so restart it with a new timeout
 					this.startRequestTimer();
 				}
-				else{
+				else {
 					this.startConnectTimer();
 				}
+				this.status(this.STATE_UNKNOWN);
+			}
+		}
+
+		if (reconnect) {
+			if (this.config.requestInterval === 0) { //Timers need to stop and the state set
+				this.status(this.STATE_OK);
+				this.stopConnectTimer();
+				this.stopRequestTimer();
+			}
+			else { //Requests should be happening
+				this.stopRequestTimer();
+				this.startConnectTimer();
 				this.status(this.STATE_UNKNOWN);
 			}
 		}
 	}
 
 	init() {
-		if(this.config.requestInterval == 0){
+		if (this.config.requestInterval === 0) {
 			this.status(this.STATE_OK);
 		}
-		else{
+		else {
 			this.status(this.STATE_UNKNOWN);
 		}
 
@@ -71,7 +88,7 @@ class instance extends instance_skel {
 		this.init_presets();
 		this.init_feedbacks();
 
-		this.startConnectTimer(1000);
+		this.startConnectTimer();
 	}
 
 	config_fields() {
@@ -96,6 +113,7 @@ class instance extends instance_skel {
 				label: 'Request Interval',
 				width: 12,
 				min: 0,
+				max: 50,
 				default: 1,
 				required: true
 			},
@@ -117,7 +135,8 @@ class instance extends instance_skel {
 	}
 
 	actions(system) {
-		this.system.emit('instance_actions', this.id, {
+		this.setActions({
+		//this.system.emit('instance_actions', this.id, {
 			'play': {label: 'Play'},
 			'stop': {label: 'Stop'},
 			'rec': {label: 'Record'},
@@ -230,7 +249,7 @@ class instance extends instance_skel {
 				break;
 		}
 
-		if(cmd !== null) {
+		if (cmd !== null) {
 			this.doCommand(cmd);
 		}
 	}
@@ -709,9 +728,9 @@ class instance extends instance_skel {
 	}
 
 	feedback(feedback, bank) {
-		if (feedback.type == 'transport_state') {
+		if (feedback.type === 'transport_state') {
 			let stateNum = 0;
-			switch (this.currentState.dynamicVariables.State) {
+			switch (this.getVariableValue('State')) {
 				case "Unknown":
 					stateNum = 0;
 					break;
@@ -783,46 +802,13 @@ class instance extends instance_skel {
 					break;
 			}
 
-			if (stateNum == feedback.options.state) {
+			if (stateNum === feedback.options.state) {
 				return { color: feedback.options.fg, bgcolor: feedback.options.bg};
 			}
 		}
 	}
 
 	initVariables() {
-		// Initialize the current state and update Companion with the variables.
-		var internal = {}
-		if(this.currentState.internal != undefined){
-			internal = this.currentState.internal
-		}
-		// Reinitialize the currentState variable, otherwise this variable (and the module's
-		//	state) will be shared between multiple instances of this module.
-		this.currentState = {};
-
-		// The internal state of the connection
-		this.currentState.internal = internal;
-
-		// The dynamic variable exposed to Companion
-		this.currentState.dynamicVariables = {
-			'TC_hours':'00',
-			'TC_min':'00',
-			'TC_sec':'00',
-			'TC_frames':'00',
-			'State':'Idle',
-			'CurrentClip':"",
-			'MediaAvailable':"0%",
-			'SystemName': "AJA KiPro"
-		}
-
-		this.setVariable('TC_hours', '00');
-		this.setVariable('TC_min', '00');
-		this.setVariable('TC_sec', '00');
-		this.setVariable('TC_frames', '00');
-		this.setVariable('State', 'Idle');
-		this.setVariable('CurrentClip', '');
-		this.setVariable('MediaAvailable', "0%");
-		this.setVariable('SystemName', "AJA KiPro");
-
 		var variables = [
 			{label: 'TimeCode Hours',		name:  'TC_hours'},
 			{label: 'TimeCode Minutes',		name:  'TC_min'},
@@ -835,16 +821,25 @@ class instance extends instance_skel {
 		];
 
 		this.setVariableDefinitions(variables);
+
+		this.setVariable('TC_hours', '00');
+		this.setVariable('TC_min', '00');
+		this.setVariable('TC_sec', '00');
+		this.setVariable('TC_frames', '00');
+		this.setVariable('State', 'Idle');
+		this.setVariable('CurrentClip', '');
+		this.setVariable('MediaAvailable', "0%");
+		this.setVariable('SystemName', "AJA KiPro");
 	}
 
-	updateVariable(name, value) {
-		if (this.currentState.dynamicVariables[name] === undefined) {
-			this.log('warn', "Variable " + name + " does not exist");
-			return;
-		}
-
-		this.currentState.dynamicVariables[name] = value;
-		this.setVariable(name, value);
+	getVariableValue(variableName) {
+		let varValue = "";
+		this.getVariable(variableName,
+			function(value) {
+				varValue = value;
+			}
+		);
+		return varValue;
 	}
 
 	startConnectTimer() {
@@ -852,10 +847,10 @@ class instance extends instance_skel {
 
 		// Stop the timer if it was already running
 		this.stopConnectTimer();
-		if(this.config.requestInterval > 0){
+		if (this.config.requestInterval > 0) {
 			this.log('info', "Starting connectTimer");
 			// Create a reconnect timer to watch the socket. If disconnected try to connect.
-			this.connectTimer = setInterval(function(){
+			this.connectTimer = setInterval(function() {
 				this.doConnect();
 			}.bind(this), timeout);
 		}
@@ -875,29 +870,25 @@ class instance extends instance_skel {
 		this.stopRequestTimer();
 		this.stopConnectTimer();
 
-		if(this.config.requestInterval > 0){
+		if (this.config.requestInterval > 0) {
 			this.log('info', "Starting requestTimer");
-			// Create a reconnect timer to watch the socket. If disconnected try to connect.
-			this.requestTimer = setInterval(function(){
+			this.requestTimer = setInterval(function() {
 				this.doRequestUpdate();
 			}.bind(this), this.config.requestInterval);
 		}
 	}
 
 	stopRequestTimer() {
-		this.startConnectTimer(1000);
-
 		if (this.requestTimer !== undefined) {
 			this.log('info', "Stopping requestTimer");
 			clearInterval(this.requestTimer);
 			delete this.requestTimer;
 		}
-
 	}
 
 	doCommand(cmd) {
 		this.system.emit('rest_get', 'http://' + this.config.host + '/config?action=set&paramid=eParamID_' + cmd, function(err, data, response) {
-			if(err) {
+			if (err) {
 				this.log('warn', 'Error from kipro: ' + result);
 				return;
 			}
@@ -905,7 +896,7 @@ class instance extends instance_skel {
 	}
 
 	doConnect() {
-		if(!this.waiting){
+		if (!this.waiting) {
 			this.waiting = true;
 
 			this.system.emit('rest_get', 'http://' + this.config.host + '/json?action=connect&configid=0', this.handleReply.bind(this));
@@ -913,7 +904,7 @@ class instance extends instance_skel {
 	}
 
 	doRequestUpdate() {
-		if(!this.waiting){
+		if (!this.waiting) {
 			this.waiting = true;
 
 			this.system.emit('rest_get', 'http://' + this.config.host + "/json?action=wait_for_config_events&configid=0&connectionid="+this.connectionID, this.handleReply.bind(this));
@@ -922,238 +913,257 @@ class instance extends instance_skel {
 
 	handleReply(err, data, response) {
 		var objJson = {};
-		if(data.data){
-			if(data.data.length){
-				if (data.data.length > 0) {
-					try {
-						objJson = JSON.parse(data.data.toString());
-						if(objJson['connectionid'] != undefined){
-							this.connectionID = Number(objJson['connectionid']);
-							if(this.connectionID){
-								this.status(this.STATE_OK);
-								this.stopConnectTimer();
-								this.startRequestTimer(this.config.requestInterval);
-								// Success
-							}
-							if(objJson['configevents'] != undefined){ //This will pick up initial values on connection
-								for (let item of objJson['configevents']){
-									if('eParamID_DisplayTimecode' in item){
-										let timecode = item['eParamID_DisplayTimecode'].split(':')
-										this.updateVariable('TC_hours', timecode[0]);
-										this.updateVariable('TC_min', timecode[1]);
-										this.updateVariable('TC_sec', timecode[2]);
-										this.updateVariable('TC_frames', timecode[3]);
-									}
+		if (data.data) {
+			if (data.response.statusCode === 200) {
+				if (data.data.length) {
+					if (data.data.length > 0) {
+						try {
+							objJson = JSON.parse(data.data.toString());
+							//If connection response
+							if (objJson['connectionid'] != undefined) {
+								this.connectionID = Number(objJson['connectionid']);
+								if (this.connectionID) {
+									this.status(this.STATE_OK);
+									this.log('debug', "Connected");
+									this.stopConnectTimer();
+									this.startRequestTimer();
+									// Success
+								}
+								if (objJson['configevents'] != undefined) { //This will pick up initial values on connection
+									for (let item of objJson['configevents']) {
+										if ('eParamID_DisplayTimecode' in item) {
+											let timecode = item['eParamID_DisplayTimecode'].split(':')
+											this.setVariable('TC_hours', timecode[0]);
+											this.setVariable('TC_min', timecode[1]);
+											this.setVariable('TC_sec', timecode[2]);
+											this.setVariable('TC_frames', timecode[3]);
+										}
 
-									if('eParamID_TransportCurrentSpeed' in item){
-										switch (Number(item['eParamID_TransportCurrentSpeed'])) {
+										if ('eParamID_TransportCurrentSpeed' in item) {
+											switch (Number(item['eParamID_TransportCurrentSpeed'])) {
+												case 2:
+													this.setVariable('State', "Forward 2X");
+													break;
+												case 4:
+													this.setVariable('State', "Forward 4X");
+													break;
+												case 8:
+													this.setVariable('State', "Forward 8X");
+													break;
+												case 16:
+													this.setVariable('State', "Forward 16X");
+													break;
+												case 32:
+													this.setVariable('State', "Forward 32X");
+													break;
+												case -1:
+													this.setVariable('State', "Reverse");
+													break;
+												case -2:
+													this.setVariable('State', "Reverse 2X");
+													break;
+												case -4:
+													this.setVariable('State', "Reverse 4X");
+													break;
+												case -8:
+													this.setVariable('State', "Reverse 8X");
+													break;
+												case -16:
+													this.setVariable('State', "Reverse 16X");
+													break;
+												case -32:
+													this.setVariable('State', "Reverse 32X");
+													break;
+											}
+											this.checkFeedbacks('transport_state');
+										}
+
+										if ('eParamID_TransportState' in item) {
+											switch (Number(item['eParamID_TransportState'])) {
+												//Cases 4-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
+												case 0:
+													this.setVariable('State', "Unknown");
+													break;
+												case 1:
+													this.setVariable('State', "Idle");
+													break;
+												case 2:
+													this.setVariable('State', "Recording");
+													break;
+												case 3:
+													this.setVariable('State', "Forward");
+													break;
+												case 8:
+													this.setVariable('State', "Forward Step");
+													break;
+												case 14:
+													this.setVariable('State', "Reverse Step");
+													break;
+												case 15:
+													this.setVariable('State', "Paused");
+													break;
+												case 16:
+													this.setVariable('State', "Idle Error");
+													break;
+												case 17:
+													this.setVariable('State', "Record Error");
+													break;
+												case 18:
+													this.setVariable('State', "Play Error");
+													break;
+												case 19:
+													this.setVariable('State', "Pause Error");
+													break;
+												case 20:
+													this.setVariable('State', "Shutdown");
+													break;
+											}
+											this.checkFeedbacks('transport_state');
+										}
+
+										if ('eParamID_CurrentClip'in item) {
+											this.setVariable('CurrentClip', item['eParamID_CurrentClip']);
+										}
+
+										if ('eParamID_CurrentMediaAvailable' in item) {
+											this.setVariable('MediaAvailable', item['eParamID_CurrentMediaAvailable']+"%");
+										}
+
+										if ('eParamID_SysName' in item) {
+											this.setVariable('SystemName', item['eParamID_SysName']);
+										}
+									}
+								}
+							}
+							//Poll response
+							else {
+								for (let item of objJson) {
+									if (item['param_id'] === 'eParamID_DisplayTimecode') {
+										let timecode = item['str_value'].split(':')
+										this.setVariable('TC_hours', timecode[0]);
+										this.setVariable('TC_min', timecode[1]);
+										this.setVariable('TC_sec', timecode[2]);
+										this.setVariable('TC_frames', timecode[3]);
+									}
+									else if (item['param_id'] === 'eParamID_TransportCurrentSpeed') {
+										switch (Number(item['str_value'])) {
 											case 2:
-												this.updateVariable('State', "Forward 2X");
+												this.setVariable('State', "Forward 2X");
 												break;
 											case 4:
-												this.updateVariable('State', "Forward 4X");
+												this.setVariable('State', "Forward 4X");
 												break;
 											case 8:
-												this.updateVariable('State', "Forward 8X");
+												this.setVariable('State', "Forward 8X");
 												break;
 											case 16:
-												this.updateVariable('State', "Forward 16X");
+												this.setVariable('State', "Forward 16X");
 												break;
 											case 32:
-												this.updateVariable('State', "Forward 32X");
+												this.setVariable('State', "Forward 32X");
 												break;
 											case -1:
-												this.updateVariable('State', "Reverse");
+												this.setVariable('State', "Reverse");
 												break;
 											case -2:
-												this.updateVariable('State', "Reverse 2X");
+												this.setVariable('State', "Reverse 2X");
 												break;
 											case -4:
-												this.updateVariable('State', "Reverse 4X");
+												this.setVariable('State', "Reverse 4X");
 												break;
 											case -8:
-												this.updateVariable('State', "Reverse 8X");
+												this.setVariable('State', "Reverse 8X");
 												break;
 											case -16:
-												this.updateVariable('State', "Reverse 16X");
+												this.setVariable('State', "Reverse 16X");
 												break;
 											case -32:
-												this.updateVariable('State', "Reverse 32X");
+												this.setVariable('State', "Reverse 32X");
 												break;
 										}
 										this.checkFeedbacks('transport_state');
 									}
-
-									if('eParamID_TransportState' in item){
-										switch (Number(item['eParamID_TransportState'])) {
+									else if (item['param_id'] === 'eParamID_TransportState') {
+										switch (Number(item['int_value'])) {
 											//Cases 4-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
 											case 0:
-												this.updateVariable('State', "Unknown");
+												this.setVariable('State', "Unknown");
 												break;
 											case 1:
-												this.updateVariable('State', "Idle");
+												this.setVariable('State', "Idle");
 												break;
 											case 2:
-												this.updateVariable('State', "Recording");
+												this.setVariable('State', "Recording");
 												break;
 											case 3:
-												this.updateVariable('State', "Forward");
+												this.setVariable('State', "Forward");
 												break;
 											case 8:
-												this.updateVariable('State', "Forward Step");
+												this.setVariable('State', "Forward Step");
 												break;
 											case 14:
-												this.updateVariable('State', "Reverse Step");
+												this.setVariable('State', "Reverse Step");
 												break;
 											case 15:
-												this.updateVariable('State', "Paused");
+												this.setVariable('State', "Paused");
 												break;
 											case 16:
-												this.updateVariable('State', "Idle Error");
+												this.setVariable('State', "Idle Error");
 												break;
 											case 17:
-												this.updateVariable('State', "Record Error");
+												this.setVariable('State', "Record Error");
 												break;
 											case 18:
-												this.updateVariable('State', "Play Error");
+												this.setVariable('State', "Play Error");
 												break;
 											case 19:
-												this.updateVariable('State', "Pause Error");
+												this.setVariable('State', "Pause Error");
 												break;
 											case 20:
-												this.updateVariable('State', "Shutdown");
+												this.setVariable('State', "Shutdown");
 												break;
 										}
 										this.checkFeedbacks('transport_state');
 									}
-
-									if('eParamID_CurrentClip'in item){
-										this.updateVariable('CurrentClip', item['eParamID_CurrentClip']);
+									else if (item['param_id'] === 'eParamID_CurrentClip') {
+										this.setVariable('CurrentClip', item['str_value']);
 									}
-
-									if('eParamID_CurrentMediaAvailable' in item){
-										this.updateVariable('MediaAvailable', item['eParamID_CurrentMediaAvailable']+"%");
+									else if (item['param_id'] === 'eParamID_CurrentMediaAvailable') {
+										this.setVariable('MediaAvailable', item['int_value']+"%");
 									}
-
-									if('eParamID_SysName' in item){
-										this.updateVariable('SystemName', item['eParamID_SysName']);
+									else if (item['param_id'] === 'eParamID_SysName') {
+										this.setVariable('SystemName', item['str_value']);
 									}
 								}
 							}
-						}
-						else{
-							for (let item of objJson){
-								if(item['param_id'] == 'eParamID_DisplayTimecode'){
-									let timecode = item['str_value'].split(':')
-									this.updateVariable('TC_hours', timecode[0]);
-									this.updateVariable('TC_min', timecode[1]);
-									this.updateVariable('TC_sec', timecode[2]);
-									this.updateVariable('TC_frames', timecode[3]);
-								}
-								else if(item['param_id'] == 'eParamID_TransportCurrentSpeed'){
-									switch (Number(item['str_value'])) {
-										case 2:
-											this.updateVariable('State', "Forward 2X");
-											break;
-										case 4:
-											this.updateVariable('State', "Forward 4X");
-											break;
-										case 8:
-											this.updateVariable('State', "Forward 8X");
-											break;
-										case 16:
-											this.updateVariable('State', "Forward 16X");
-											break;
-										case 32:
-											this.updateVariable('State', "Forward 32X");
-											break;
-										case -1:
-											this.updateVariable('State', "Reverse");
-											break;
-										case -2:
-											this.updateVariable('State', "Reverse 2X");
-											break;
-										case -4:
-											this.updateVariable('State', "Reverse 4X");
-											break;
-										case -8:
-											this.updateVariable('State', "Reverse 8X");
-											break;
-										case -16:
-											this.updateVariable('State', "Reverse 16X");
-											break;
-										case -32:
-											this.updateVariable('State', "Reverse 32X");
-											break;
-									}
-									this.checkFeedbacks('transport_state');
-								}
-								else if(item['param_id'] == 'eParamID_TransportState'){
-									switch (Number(item['int_value'])) {
-										//Cases 4-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
-										case 0:
-											this.updateVariable('State', "Unknown");
-											break;
-										case 1:
-											this.updateVariable('State', "Idle");
-											break;
-										case 2:
-											this.updateVariable('State', "Recording");
-											break;
-										case 3:
-											this.updateVariable('State', "Forward");
-											break;
-										case 8:
-											this.updateVariable('State', "Forward Step");
-											break;
-										case 14:
-											this.updateVariable('State', "Reverse Step");
-											break;
-										case 15:
-											this.updateVariable('State', "Paused");
-											break;
-										case 16:
-											this.updateVariable('State', "Idle Error");
-											break;
-										case 17:
-											this.updateVariable('State', "Record Error");
-											break;
-										case 18:
-											this.updateVariable('State', "Play Error");
-											break;
-										case 19:
-											this.updateVariable('State', "Pause Error");
-											break;
-										case 20:
-											this.updateVariable('State', "Shutdown");
-											break;
-									}
-									this.checkFeedbacks('transport_state');
-								}
-								else if(item['param_id'] == 'eParamID_CurrentClip'){
-									this.updateVariable('CurrentClip', item['str_value']);
-								}
-								else if(item['param_id'] == 'eParamID_CurrentMediaAvailable'){
-									this.updateVariable('MediaAvailable', item['int_value']+"%");
-								}
-								else if(item['param_id'] == 'eParamID_SysName'){
-									this.updateVariable('SystemName', item['str_value']);
-								}
-							}
-						}
-					} catch(error) {}
+						} catch(error) {}
+					}
 				}
+			}
+			else {
+				//request timer is running so it was an invalid connection ID
+				if (this.requestTimer !== undefined) {
+					this.log('error', 'Invalid connection ID');
+				}
+				else {
+					this.log('error', 'Status'+data.response.statusCode);
+				}
+				this.status(this.STATE_ERROR, err);
+				this.stopRequestTimer();
+				this.startConnectTimer();
+				this.waiting = false;
+				return;
 			}
 		}
 		if (err) {
 			this.log('error', 'Error connecting to KiPro');
 			this.status(this.STATE_ERROR, err);
 			this.stopRequestTimer();
-			this.startConnectTimer(1000);
+			this.startConnectTimer();
 			this.waiting = false;
 			return;
 		}
-		else{
+		else {
 			this.waiting = false;
 			return;
 		}
