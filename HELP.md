@@ -20,6 +20,7 @@ Add an action to a button and choose the action you wish to use.
 * Step Forward
 * Step Reverse/Back
 * Load Clip By Name (Requires extension)
+* Load Clip By List
 * Loop Clip
 * Format
 * Erase Clip

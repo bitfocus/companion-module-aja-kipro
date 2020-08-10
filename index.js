@@ -9,6 +9,7 @@ class instance extends instance_skel {
 		this.connectionID = 0;
 		this.authenticated = false;
 		this.authToken = "";
+		this.availableClips = [];
 
 		this.actions(); // export actions
 
@@ -139,6 +140,18 @@ class instance extends instance_skel {
 					}
 				]
 			},
+			'loadByDrop': {
+				label: 'Load Clip By List',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Clip',
+						id: 'idx',
+						default: '',
+						choices: this.availableClips
+					}
+				]
+			},
 			'loop': {
 				label: 'Loop Clip',
 				options: [
@@ -190,6 +203,7 @@ class instance extends instance_skel {
 				cmd = 'TransportCommand&value=8';
 				break;
 			case 'load':
+			case 'loadByDrop':
 				cmd = 'GoToClip&value=' + opt.idx;
 				break;
 			case 'loop':
@@ -883,9 +897,9 @@ class instance extends instance_skel {
 			var client = new Client();
 
 			client.post('http://' + this.config.host + '/authenticator/login', args, function (data, response) {
-				this.authReply(null, { data: data, response: response })
+				this.handleReply(null, { data: data, response: response })
 			}.bind(this)).on('error', function(error) {
-				this.authReply(true,{ error: error })
+				this.handleReply(true,{ error: error })
 			}.bind(this));
 		}
 	}
@@ -904,6 +918,16 @@ class instance extends instance_skel {
 		}
 	}
 
+	doGetClips() {
+		var extraHeadders = {}
+
+		if(this.config.password !== ""){
+			extraHeadders["Cookie"] = this.authToken;
+		}
+
+		this.system.emit('rest_get', 'http://' + this.config.host + '/clips?action=get_clips', this.handleReply.bind(this), extraHeadders);
+	}
+
 	doRequestUpdate() {
 		if (!this.waiting) {
 			this.waiting = true;
@@ -915,53 +939,6 @@ class instance extends instance_skel {
 			}
 
 			this.system.emit('rest_get', 'http://' + this.config.host + "/json?action=wait_for_config_events&configid=0&connectionid="+this.connectionID, this.handleReply.bind(this), extraHeadders);
-		}
-	}
-
-	authReply(err, data, response) {
-		if (data.data) {
-			if (data.response.statusCode === 200) {
-				if (data.data.length) {
-					if (data.data.length > 0) {
-						try {
-							let objJson = JSON.parse(data.data.toString());
-							//If connection response
-							if (objJson['login'] !== undefined) {
-								if(objJson['login'] === "success"){
-									this.authenticated = true;
-									this.authToken = data.response.headers['set-cookie'][0];
-									this.log('debug', 'Authenticated');
-								}
-								else if(objJson['login'] === "Login Failed - Passwords did not match"){
-									this.status(this.STATE_ERROR);
-									this.authenticated = false;
-									this.authToken = "";
-									this.log('error', 'Password does not match');
-								}
-							}
-						} catch(error) {}
-					}
-				}
-			}
-			else {
-				this.status(this.STATE_ERROR, err);
-				this.waiting = false;
-				return;
-			}
-		}
-		if (err) {
-			this.log('error', 'Error connecting to KiPro');
-			this.status(this.STATE_ERROR, err);
-			this.authenticated = false;
-			this.authToken = "";
-			this.stopRequestTimer();
-			this.startConnectTimer();
-			this.waiting = false;
-			return;
-		}
-		else {
-			this.waiting = false;
-			return;
 		}
 	}
 
@@ -979,6 +956,7 @@ class instance extends instance_skel {
 								if (this.connectionID) {
 									this.status(this.STATE_OK);
 									this.log('debug', "Connected");
+									this.doGetClips();
 									this.stopConnectTimer();
 									this.startRequestTimer();
 									// Success
@@ -1089,6 +1067,34 @@ class instance extends instance_skel {
 									}
 								}
 							}
+							//Clips response
+							else if (objJson['clips'] != undefined) {
+								this.availableClips = [];
+								for (let clip of objJson['clips']) {
+									this.availableClips.push({id:clip['clipname'], label:clip['clipname']});
+								}
+								this.actions();
+							}
+							//login Response
+							else if (objJson['login'] !== undefined) {
+								if(objJson['login'] === "success"){
+									this.authenticated = true;
+									this.authToken = data.response.headers['set-cookie'][0];
+									this.log('debug', 'Authenticated');
+								}
+								else if(objJson['login'] === "Login Failed - Passwords did not match"){
+									this.status(this.STATE_ERROR);
+									this.authenticated = false;
+									this.authToken = "";
+									this.log('error', 'Password does not match');
+								}
+								else{
+									this.status(this.STATE_ERROR);
+									this.authenticated = false;
+									this.authToken = "";
+									this.log('error', 'Authentication Error');
+								}
+							}
 							//Poll response
 							else {
 								for (let item of objJson) {
@@ -1187,6 +1193,9 @@ class instance extends instance_skel {
 									}
 									else if (item['param_id'] === 'eParamID_SysName') {
 										this.setVariable('SystemName', item['str_value']);
+									}
+									else if (item['param_id'] === 'eParamID_MediaUpdated'){
+										this.doGetClips();
 									}
 								}
 							}
