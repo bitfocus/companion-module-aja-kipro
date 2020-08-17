@@ -11,16 +11,44 @@ class instance extends instance_skel {
 		this.authToken = "";
 		this.availableClips = [];
 
-		this.actions(); // export actions
+		this.state = {
+			'TransportState': 0
+		}
 
-		// Example: When this script was committed, a fix needed to be made
-		// this will only be run if you had an instance of an older "version" before.
-		// "version" is calculated out from how many upgradescripts your intance config has run.
-		// So just add a addUpgradeScript when you commit a breaking change to the config, that fixes
-		// the config.
+		this.states = {
+			0:"Unknown",
+			1:"Idle",
+			2:"Recording",
+			3:"Forward",
+			4:"Forward 2X",
+			5:"Forward 4X",
+			6:"Forward 8X",
+			7:"Forward 16X",
+			21:"Forward 32X",
+			8:"Forward Step",
+			9:"Reverse",
+			10:"Reverse 2X",
+			11:"Reverse 4X",
+			12:"Reverse 8X",
+			13:"Reverse 16X",
+			22:"Reverse 32X",
+			14:"Reverse Step",
+			15:"Paused",
+			16:"Idle Error",
+			17:"Record Error",
+			18:"Play Error",
+			19:"Pause Error",
+			20:"Shutdown",
+		}
+
+		this.actions(); // export actions
 
 		this.addUpgradeScript(function () {
 			// just an example
+			if (this.config.polling !== undefined) {
+				this.config.polling = false; //Default polling off for existing users
+			}
+
 			if (this.config.host !== undefined) {
 				this.config.old_host = this.config.host;
 			}
@@ -29,17 +57,36 @@ class instance extends instance_skel {
 
 	updateConfig(config) {
 		var reconnect = false;
+		var retime = false;
 
 		if ((config.host != this.config.host) || (config.password != this.config.password)) {
 			reconnect = true;
+		}
+
+		if ((config.polling != this.config.polling) || (config.pollingRate != this.config.pollingRate)) {
+			retime = true;
 		}
 
 		this.config = config;
 
 		if (reconnect) {
 			this.stopRequestTimer();
+			this.stopConnectTimer();
+
+			this.initVariables();
+			this.connectionID = 0;
+			this.authenticated = false;
+			this.authToken = "";
+			this.availableClips = [];
+
 			this.startConnectTimer();
 			this.status(this.STATE_UNKNOWN);
+		}
+		else if (retime) {
+			this.initVariables();
+			if (this.requestTimer !== undefined) {
+				this.startRequestTimer();
+			}
 		}
 	}
 
@@ -51,6 +98,9 @@ class instance extends instance_skel {
 		this.init_feedbacks();
 
 		this.startConnectTimer();
+
+		this.checkFeedbacks('transport_state');
+
 	}
 
 	config_fields() {
@@ -67,7 +117,23 @@ class instance extends instance_skel {
 				id: 'host',
 				label: 'Target IP',
 				width: 8,
-				regex: this.REGEX_IP
+				regex: this.REGEX_IP,
+				required: true
+			},
+			{
+				type: 'checkbox',
+				label: 'Polling',
+				id: 'polling',
+				default: true
+			},
+			{
+				type: 'number',
+				label: 'Polling Rate (ms)',
+				id: 'pollingRate',
+				min: 10,
+				max: 5000,
+				default: 100,
+				required: true
 			},
 			{
 				type: 'text',
@@ -106,13 +172,25 @@ class instance extends instance_skel {
 			'stepB': {label: 'Step Back'},
 			'format' : {label: 'Format Drive'},
 			'eraseClip': {
-				label: 'Erase Clip',
+				label: 'Erase Clip By Name',
 				options: [
 					{
 						type: 'textinput',
 						label: 'Clip Name',
 						id: 'idx',
 						default: ''
+					}
+				]
+			},
+			'eraseClipByDrop': {
+				label: 'Erase Clip By List',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Clip Name',
+						id: 'idx',
+						default: '',
+						choices: this.availableClips
 					}
 				]
 			},
@@ -166,6 +244,43 @@ class instance extends instance_skel {
 					}
 				]
 			},
+			'setTimecode': {
+				label: 'Set Timecode Value',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Timecode',
+						id: 'idx',
+						default: 0,
+						choices: [
+							{id:"0", label:"00:00:00:00"},
+							{id:"1", label:"01:00:00:00"},
+							{id:"2", label:"02:00:00:00"},
+							{id:"3", label:"03:00:00:00"},
+							{id:"4", label:"04:00:00:00"},
+							{id:"5", label:"05:00:00:00"},
+							{id:"6", label:"06:00:00:00"},
+							{id:"7", label:"07:00:00:00"},
+							{id:"8", label:"08:00:00:00"},
+							{id:"9", label:"09:00:00:00"},
+							{id:"10", label:"10:00:00:00"},
+							{id:"11", label:"11:00:00:00"},
+							{id:"12", label:"12:00:00:00"},
+							{id:"13", label:"13:00:00:00"},
+							{id:"14", label:"14:00:00:00"},
+							{id:"15", label:"15:00:00:00"},
+							{id:"16", label:"16:00:00:00"},
+							{id:"17", label:"17:00:00:00"},
+							{id:"18", label:"18:00:00:00"},
+							{id:"19", label:"19:00:00:00"},
+							{id:"20", label:"20:00:00:00"},
+							{id:"21", label:"21:00:00:00"},
+							{id:"22", label:"22:00:00:00"},
+							{id:"23", label:"23:00:00:00"},
+						]
+					}
+				]
+			},
 		});
 	}
 
@@ -213,10 +328,14 @@ class instance extends instance_skel {
 				cmd = 'StorageCommand&value=4&configid=0';
 				break;
 			case 'eraseClip':
+			case 'eraseClipByDrop':
 				cmd = 'ClipToDelete&value=' + opt.idx + '&configid=0';
 				break;
 			case 'customTake':
 				cmd = 'CustomTake&value=' + opt.idx + '&configid=0';
+				break;
+			case 'setTimecode':
+				cmd = 'TimecodeValue&value=' + opt.idx;
 				break;
 		}
 
@@ -251,7 +370,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: 3
+							state: "3"
 						}
 					},
 					{
@@ -259,7 +378,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(255,255,0),
-							state: 15
+							state: "15"
 						}
 					}
 				]
@@ -287,7 +406,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: 1
+							state: "1"
 						}
 					}
 				]
@@ -315,7 +434,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(255,0,0),
-							state: 2
+							state: "2"
 						}
 					}
 				]
@@ -379,7 +498,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,51,0),
-							state: 4
+							state: "4"
 						}
 					},
 					{
@@ -387,7 +506,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,102,0),
-							state: 5
+							state: "5"
 						}
 					},
 					{
@@ -395,7 +514,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,153,0),
-							state: 6
+							state: "6"
 						}
 					},
 					{
@@ -403,7 +522,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,204,0),
-							state: 7
+							state: "7"
 						}
 					},
 					{
@@ -411,7 +530,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: 21
+							state: "21"
 						}
 					}
 				]
@@ -439,7 +558,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,42,0),
-							state: 9 //1X Rev
+							state: "9" //1X Rev
 						}
 					},
 					{
@@ -447,7 +566,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,84,0),
-							state: 10 //2X Rev
+							state: "10" //2X Rev
 						}
 					},
 					{
@@ -455,7 +574,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,126,0),
-							state: 11 //4X Rev
+							state: "11" //4X Rev
 						}
 					},
 					{
@@ -463,7 +582,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,168,0),
-							state: 12 //8X Rev
+							state: "12" //8X Rev
 						}
 					},
 					{
@@ -471,7 +590,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,210,0),
-							state: 13 //16X Rev
+							state: "13" //16X Rev
 						}
 					},
 					{
@@ -479,7 +598,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: 22 //32X Rev
+							state: "22" //32X Rev
 						}
 					}
 				]
@@ -507,7 +626,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: 8
+							state: "8"
 						}
 					}
 				]
@@ -535,7 +654,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: 14
+							state: "14"
 						}
 					}
 				]
@@ -629,13 +748,46 @@ class instance extends instance_skel {
 					{
 						action: 'customTake',
 						options:{
-							idx: 0
+							idx: "0"
 						},
 						delay: 200
 					},
 					{
 						action: 'format',
-						delay: 1
+						delay: 200
+					}
+				],
+			},
+			//Reset Timecode and Record
+			{
+				category: 'Functions',
+				label: 'Reset Timecode and Record',
+				bank: {
+					style: 'text',
+					text: 'Reset and Record',
+					size: 'auto',
+					color: this.rgb(255, 255, 255),
+					bgcolor: this.rgb(0, 0, 0),
+					latch: false,
+					relative_delay: true
+				},
+				actions: [
+					{
+						action: 'setTimecode',
+						options:{
+							idx: "1"
+						},
+					},
+					{
+						action: 'setTimecode',
+						delay: 10,
+						options:{
+							idx: "0"
+						},
+					},
+					{
+						action: 'rec',
+						delay: 10
 					}
 				],
 			}
@@ -655,29 +807,29 @@ class instance extends instance_skel {
 					id: 'state',
 					default: 1,
 					choices: [
-						{ id: 0, label: "Unknown"},
-						{ id: 1, label: "Idle"},
-						{ id: 2, label: "Recording"},
-						{ id: 3, label: "Forward"},
-						{ id: 4, label: "Forward 2X"},
-						{ id: 5, label: "Forward 4X"},
-						{ id: 6, label: "Forward 8X"},
-						{ id: 7, label: "Forward 16X"},
-						{ id: 8, label: "Forward Step"},
-						{ id: 9, label: "Reverse"},
-						{ id: 10, label: "Reverse 2X"},
-						{ id: 11, label: "Reverse 4X"},
-						{ id: 12, label: "Reverse 8X"},
-						{ id: 13, label: "Reverse 16X"},
-						{ id: 14, label: "Reverse Step"},
-						{ id: 15, label: "Paused"},
-						{ id: 16, label: "Idle Error"},
-						{ id: 17, label: "Record Error"},
-						{ id: 18, label: "Play Error"},
-						{ id: 19, label: "Pause Error"},
-						{ id: 20, label: "Shutdown"},
-						{ id: 21, label: "Forward 32X"},
-						{ id: 22, label: "Reverse 32X"}
+						{ id: "0", label: "Unknown"},
+						{ id: "1", label: "Idle"},
+						{ id: "2", label: "Recording"},
+						{ id: "3", label: "Forward"},
+						{ id: "4", label: "Forward 2X"},
+						{ id: "5", label: "Forward 4X"},
+						{ id: "6", label: "Forward 8X"},
+						{ id: "7", label: "Forward 16X"},
+						{ id: "21", label: "Forward 32X"},
+						{ id: "8", label: "Forward Step"},
+						{ id: "9", label: "Reverse"},
+						{ id: "10", label: "Reverse 2X"},
+						{ id: "11", label: "Reverse 4X"},
+						{ id: "12", label: "Reverse 8X"},
+						{ id: "13", label: "Reverse 16X"},
+						{ id: "22", label: "Reverse 32X"},
+						{ id: "14", label: "Reverse Step"},
+						{ id: "15", label: "Paused"},
+						{ id: "16", label: "Idle Error"},
+						{ id: "17", label: "Record Error"},
+						{ id: "18", label: "Play Error"},
+						{ id: "19", label: "Pause Error"},
+						{ id: "20", label: "Shutdown"}
 					]
 				},//State
 				{
@@ -700,80 +852,7 @@ class instance extends instance_skel {
 
 	feedback(feedback, bank) {
 		if (feedback.type === 'transport_state') {
-			let stateNum = 0;
-			switch (this.getVariableValue('State')) {
-				case "Unknown":
-					stateNum = 0;
-					break;
-				case "Idle":
-					stateNum = 1;
-					break;
-				case "Recording":
-					stateNum = 2;
-					break;
-				case "Forward":
-					stateNum = 3;
-					break;
-				case "Forward 2X":
-					stateNum = 4;
-					break;
-				case "Forward 4X":
-					stateNum = 5;
-					break;
-				case "Forward 8X":
-					stateNum = 6;
-					break;
-				case "Forward 16X":
-					stateNum = 7;
-					break;
-				case "Forward 32X":
-					stateNum = 21;
-					break;
-				case "Forward Step":
-					stateNum = 8;
-					break;
-				case "Reverse":
-					stateNum = 9;
-					break;
-				case "Reverse 2X":
-					stateNum = 10;
-					break;
-				case "Reverse 4X":
-					stateNum = 11;
-					break;
-				case "Reverse 8X":
-					stateNum = 12;
-					break;
-				case "Reverse 16X":
-					stateNum = 13;
-					break;
-				case "Reverse 32X":
-					stateNum = 22;
-					break;
-				case "Reverse Step":
-					stateNum = 14;
-					break;
-				case "Paused":
-					stateNum = 15;
-					break;
-				case "Idle Error":
-					stateNum = 16;
-					break;
-				case "Record Error":
-					stateNum = 17;
-					break;
-				case "Play Error":
-					stateNum = 18;
-					break;
-				case "Pause Error":
-					stateNum = 19;
-					break;
-				case "Shutdown":
-					stateNum = 20;
-					break;
-			}
-
-			if (stateNum === feedback.options.state) {
+			if (Number(this.state['TransportState']) === Number(feedback.options.state)) {
 				return { color: feedback.options.fg, bgcolor: feedback.options.bg};
 			}
 		}
@@ -785,7 +864,7 @@ class instance extends instance_skel {
 			{label: 'TimeCode Minutes',		name:  'TC_min'},
 			{label: 'TimeCode Seconds',		name:  'TC_sec'},
 			{label: 'TimeCode Frames',		name:  'TC_frames'},
-			{label: 'State',				name:  'State'},
+			{label: 'Transport State',		name:  'TransportState'},
 			{label: 'Current Clip',			name:  'CurrentClip'},
 			{label: 'Media Available',		name:  'MediaAvailable'},
 			{label: 'System Name',			name:  'SystemName'}
@@ -797,20 +876,10 @@ class instance extends instance_skel {
 		this.setVariable('TC_min', '00');
 		this.setVariable('TC_sec', '00');
 		this.setVariable('TC_frames', '00');
-		this.setVariable('State', 'Idle');
-		this.setVariable('CurrentClip', '');
+		this.setVariable('TransportState', 'Unknown');
+		this.setVariable('CurrentClip', 'N/A');
 		this.setVariable('MediaAvailable', "0%");
-		this.setVariable('SystemName', "AJA KiPro");
-	}
-
-	getVariableValue(variableName) {
-		let varValue = "";
-		this.getVariable(variableName,
-			function(value) {
-				varValue = value;
-			}
-		);
-		return varValue;
+		this.setVariable('SystemName', "N/A");
 	}
 
 	startConnectTimer() {
@@ -850,10 +919,16 @@ class instance extends instance_skel {
 		this.stopRequestTimer();
 		this.stopConnectTimer();
 
+		let refreshRate = 50000; //Keep connection alive for authentication if polling is disabled
+
+		if (this.config.polling) {
+			refreshRate = this.config.pollingRate;
+		}
+
 		this.log('info', "Starting requestTimer");
 		this.requestTimer = setInterval(function() {
 			this.doRequestUpdate();
-		}.bind(this), 1); //Update as fast as possible. KiPros wait for changes before they respond
+		}.bind(this), refreshRate);
 	}
 
 	stopRequestTimer() {
@@ -867,16 +942,11 @@ class instance extends instance_skel {
 	doCommand(cmd) {
 		var extraHeadders = {}
 
-		if(this.config.password !== ""){
+		if (this.config.password !== "") {
 			extraHeadders["Cookie"] = this.authToken;
 		}
 
-		this.system.emit('rest_get', 'http://' + this.config.host + '/config?action=set&paramid=eParamID_' + cmd, function(err, data, response) {
-			if (err) {
-				this.log('warn', 'Error from kipro: ' + result);
-				return;
-			}
-		}.bind(this), extraHeadders);
+		this.system.emit('rest_get', 'http://' + this.config.host + '/config?action=set&paramid=eParamID_' + cmd, this.handleReply.bind(this), extraHeadders);
 	}
 
 	doAuthenticate() {
@@ -910,7 +980,7 @@ class instance extends instance_skel {
 
 			var extraHeadders = {}
 
-			if(this.config.password !== ""){
+			if (this.config.password !== "") {
 				extraHeadders["Cookie"] = this.authToken;
 			}
 
@@ -921,7 +991,7 @@ class instance extends instance_skel {
 	doGetClips() {
 		var extraHeadders = {}
 
-		if(this.config.password !== ""){
+		if (this.config.password !== "") {
 			extraHeadders["Cookie"] = this.authToken;
 		}
 
@@ -934,7 +1004,7 @@ class instance extends instance_skel {
 
 			var extraHeadders = {}
 
-			if(this.config.password !== ""){
+			if (this.config.password !== "") {
 				extraHeadders["Cookie"] = this.authToken;
 			}
 
@@ -945,6 +1015,7 @@ class instance extends instance_skel {
 	handleReply(err, data, response) {
 		var objJson = {};
 		if (data.data) {
+			//let requestPath = data.response.req.connection._httpMessage.path;
 			if (data.response.statusCode === 200) {
 				if (data.data.length) {
 					if (data.data.length > 0) {
@@ -960,111 +1031,100 @@ class instance extends instance_skel {
 									this.stopConnectTimer();
 									this.startRequestTimer();
 									// Success
-								}
-								if (objJson['configevents'] != undefined) { //This will pick up initial values on connection
-									for (let item of objJson['configevents']) {
-										if ('eParamID_DisplayTimecode' in item) {
-											let timecode = item['eParamID_DisplayTimecode'].split(':')
-											this.setVariable('TC_hours', timecode[0]);
-											this.setVariable('TC_min', timecode[1]);
-											this.setVariable('TC_sec', timecode[2]);
-											this.setVariable('TC_frames', timecode[3]);
-										}
 
-										if ('eParamID_TransportCurrentSpeed' in item) {
-											switch (Number(item['eParamID_TransportCurrentSpeed'])) {
-												case 2:
-													this.setVariable('State', "Forward 2X");
-													break;
-												case 4:
-													this.setVariable('State', "Forward 4X");
-													break;
-												case 8:
-													this.setVariable('State', "Forward 8X");
-													break;
-												case 16:
-													this.setVariable('State', "Forward 16X");
-													break;
-												case 32:
-													this.setVariable('State', "Forward 32X");
-													break;
-												case -1:
-													this.setVariable('State', "Reverse");
-													break;
-												case -2:
-													this.setVariable('State', "Reverse 2X");
-													break;
-												case -4:
-													this.setVariable('State', "Reverse 4X");
-													break;
-												case -8:
-													this.setVariable('State', "Reverse 8X");
-													break;
-												case -16:
-													this.setVariable('State', "Reverse 16X");
-													break;
-												case -32:
-													this.setVariable('State', "Reverse 32X");
-													break;
+									if (this.config.polling) { //Polling is active so update the variables
+										if (objJson['configevents'] != undefined) { //This will pick up initial values on connection
+											for (let item of objJson['configevents']) {
+												if ('eParamID_DisplayTimecode' in item) {
+													let timecode = item['eParamID_DisplayTimecode'].split(':')
+													this.setVariable('TC_hours', timecode[0]);
+													this.setVariable('TC_min', timecode[1]);
+													this.setVariable('TC_sec', timecode[2]);
+													this.setVariable('TC_frames', timecode[3]);
+												}
+
+												if ('eParamID_TransportCurrentSpeed' in item) {
+													switch (Number(item['eParamID_TransportCurrentSpeed'])) {
+														case 2:
+															this.state['TransportState'] = 4;  //2X Forward
+															break;
+														case 4:
+															this.state['TransportState'] = 5;  //4X Forward
+															break;
+														case 8:
+															this.state['TransportState'] = 6;  //8X Forward
+															break;
+														case 16:
+															this.state['TransportState'] = 7;  //16X Forward
+															break;
+														case 32:
+															this.state['TransportState'] = 21; //32X Forward
+															break;
+														case -1:
+															this.state['TransportState'] = 9;  //Reverse
+															break;
+														case -2:
+															this.state['TransportState'] = 10; //2X Reverse
+															break;
+														case -4:
+															this.state['TransportState'] = 11; //4X Reverse
+															break;
+														case -8:
+															this.state['TransportState'] = 12; //8X Reverse
+															break;
+														case -16:
+															this.state['TransportState'] = 13; //16X Reverse
+															break;
+														case -32:
+															this.state['TransportState'] = 22; //32X Reverse
+															break;
+													}
+													this.setVariable('TransportState', this.states[this.state['TransportState']])
+													this.checkFeedbacks('transport_state');
+												}
+
+												if ('eParamID_TransportState' in item) {
+													let stateNum = Number(item['eParamID_TransportState']);
+													switch (stateNum) {
+														//Cases 3-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
+														case 0: //Unknown
+														case 1: //Idle
+														case 2: //Recording
+														case 3: //Playing Forward
+														case 8: //Forward Step
+														case 14://Reverse Step
+														case 15://Paused
+														case 16://Idle Error
+														case 17://Record Error
+														case 18://Play Error
+														case 19://Pause Error
+														case 20://Shutdown
+															this.state['TransportState'] = stateNum;
+															break;
+													}
+													this.setVariable('TransportState', this.states[this.state['TransportState']])
+													this.checkFeedbacks('transport_state');
+												}
+
+												if ('eParamID_CurrentClip'in item) {
+													this.setVariable('CurrentClip', item['eParamID_CurrentClip']);
+												}
+
+												if ('eParamID_CurrentMediaAvailable' in item) {
+													this.setVariable('MediaAvailable', item['eParamID_CurrentMediaAvailable']+"%");
+												}
+
+												if ('eParamID_SysName' in item) {
+													this.setVariable('SystemName', item['eParamID_SysName']);
+												}
 											}
-											this.checkFeedbacks('transport_state');
-										}
-
-										if ('eParamID_TransportState' in item) {
-											switch (Number(item['eParamID_TransportState'])) {
-												//Cases 4-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
-												case 0:
-													this.setVariable('State', "Unknown");
-													break;
-												case 1:
-													this.setVariable('State', "Idle");
-													break;
-												case 2:
-													this.setVariable('State', "Recording");
-													break;
-												case 3:
-													this.setVariable('State', "Forward");
-													break;
-												case 8:
-													this.setVariable('State', "Forward Step");
-													break;
-												case 14:
-													this.setVariable('State', "Reverse Step");
-													break;
-												case 15:
-													this.setVariable('State', "Paused");
-													break;
-												case 16:
-													this.setVariable('State', "Idle Error");
-													break;
-												case 17:
-													this.setVariable('State', "Record Error");
-													break;
-												case 18:
-													this.setVariable('State', "Play Error");
-													break;
-												case 19:
-													this.setVariable('State', "Pause Error");
-													break;
-												case 20:
-													this.setVariable('State', "Shutdown");
-													break;
-											}
-											this.checkFeedbacks('transport_state');
-										}
-
-										if ('eParamID_CurrentClip'in item) {
-											this.setVariable('CurrentClip', item['eParamID_CurrentClip']);
-										}
-
-										if ('eParamID_CurrentMediaAvailable' in item) {
-											this.setVariable('MediaAvailable', item['eParamID_CurrentMediaAvailable']+"%");
-										}
-
-										if ('eParamID_SysName' in item) {
-											this.setVariable('SystemName', item['eParamID_SysName']);
 										}
 									}
+								}
+								else{
+									this.status(this.STATE_ERROR);
+									this.connectionID = 0;
+									this.log('error', 'Connection Error');
 								}
 							}
 							//Clips response
@@ -1077,26 +1137,29 @@ class instance extends instance_skel {
 							}
 							//login Response
 							else if (objJson['login'] !== undefined) {
-								if(objJson['login'] === "success"){
+								if (objJson['login'] === "success") {
 									this.authenticated = true;
 									this.authToken = data.response.headers['set-cookie'][0];
+									this.connectionID = 0;
 									this.log('debug', 'Authenticated');
 								}
-								else if(objJson['login'] === "Login Failed - Passwords did not match"){
+								else if (objJson['login'] === "Login Failed - Passwords did not match") {
 									this.status(this.STATE_ERROR);
 									this.authenticated = false;
 									this.authToken = "";
+									this.connectionID = 0;
 									this.log('error', 'Password does not match');
 								}
 								else{
 									this.status(this.STATE_ERROR);
 									this.authenticated = false;
 									this.authToken = "";
+									this.connectionID = 0;
 									this.log('error', 'Authentication Error');
 								}
 							}
 							//Poll response
-							else {
+							else if (this.config.polling) { //Polling is active so update the variables
 								for (let item of objJson) {
 									if (item['param_id'] === 'eParamID_DisplayTimecode') {
 										let timecode = item['str_value'].split(':')
@@ -1108,81 +1171,62 @@ class instance extends instance_skel {
 									else if (item['param_id'] === 'eParamID_TransportCurrentSpeed') {
 										switch (Number(item['str_value'])) {
 											case 2:
-												this.setVariable('State', "Forward 2X");
+												this.state['TransportState'] = 4;	//2X Forward
 												break;
 											case 4:
-												this.setVariable('State', "Forward 4X");
+												this.state['TransportState'] = 5;	//4X Forward
 												break;
 											case 8:
-												this.setVariable('State', "Forward 8X");
+												this.state['TransportState'] = 6;	//8X Forward
 												break;
 											case 16:
-												this.setVariable('State', "Forward 16X");
+												this.state['TransportState'] = 7;	//16X Forward
 												break;
 											case 32:
-												this.setVariable('State', "Forward 32X");
+												this.state['TransportState'] = 21;	//32X Forward
 												break;
 											case -1:
-												this.setVariable('State', "Reverse");
+												this.state['TransportState'] = 9;	//Reverse
 												break;
 											case -2:
-												this.setVariable('State', "Reverse 2X");
+												this.state['TransportState'] = 10;	//2X Reverse
 												break;
 											case -4:
-												this.setVariable('State', "Reverse 4X");
+												this.state['TransportState'] = 11;	//4X Reverse
 												break;
 											case -8:
-												this.setVariable('State', "Reverse 8X");
+												this.state['TransportState'] = 12;	//8X Reverse
 												break;
 											case -16:
-												this.setVariable('State', "Reverse 16X");
+												this.state['TransportState'] = 13;	//16X Reverse
 												break;
 											case -32:
-												this.setVariable('State', "Reverse 32X");
+												this.state['TransportState'] = 22;	//32X Reverse
 												break;
 										}
+										this.setVariable('TransportState', this.states[this.state['TransportState']])
 										this.checkFeedbacks('transport_state');
 									}
 									else if (item['param_id'] === 'eParamID_TransportState') {
-										switch (Number(item['int_value'])) {
-											//Cases 4-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
-											case 0:
-												this.setVariable('State', "Unknown");
-												break;
-											case 1:
-												this.setVariable('State', "Idle");
-												break;
-											case 2:
-												this.setVariable('State', "Recording");
-												break;
-											case 3:
-												this.setVariable('State', "Forward");
-												break;
-											case 8:
-												this.setVariable('State', "Forward Step");
-												break;
-											case 14:
-												this.setVariable('State', "Reverse Step");
-												break;
-											case 15:
-												this.setVariable('State', "Paused");
-												break;
-											case 16:
-												this.setVariable('State', "Idle Error");
-												break;
-											case 17:
-												this.setVariable('State', "Record Error");
-												break;
-											case 18:
-												this.setVariable('State', "Play Error");
-												break;
-											case 19:
-												this.setVariable('State', "Pause Error");
-												break;
-											case 20:
-												this.setVariable('State', "Shutdown");
+										let stateNum = Number(item['int_value']);
+										switch (stateNum) {
+											//Cases 3-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
+											case 0: //Unknown
+											case 1: //Idle
+											case 2: //Recording
+											case 3: //Playing Forward
+											case 8: //Forward Step
+											case 14://Reverse Step
+											case 15://Paused
+											case 16://Idle Error
+											case 17://Record Error
+											case 18://Play Error
+											case 19://Pause Error
+											case 20://Shutdown
+												this.state['TransportState'] = stateNum;
 												break;
 										}
+										this.setVariable('TransportState', this.states[this.state['TransportState']])
 										this.checkFeedbacks('transport_state');
 									}
 									else if (item['param_id'] === 'eParamID_CurrentClip') {
@@ -1194,7 +1238,7 @@ class instance extends instance_skel {
 									else if (item['param_id'] === 'eParamID_SysName') {
 										this.setVariable('SystemName', item['str_value']);
 									}
-									else if (item['param_id'] === 'eParamID_MediaUpdated'){
+									else if (item['param_id'] === 'eParamID_MediaUpdated') {
 										this.doGetClips();
 									}
 								}
@@ -1204,16 +1248,11 @@ class instance extends instance_skel {
 				}
 			}
 			else {
-				//request timer is running so it was an invalid connection ID
-				if (this.requestTimer !== undefined) {
-					this.log('error', 'Invalid connection ID');
-				}
-				else {
-					this.log('error', 'Status'+data.response.statusCode);
-				}
+				this.log('error', 'Status'+data.response.statusCode);
 				this.status(this.STATE_ERROR, err);
 				this.authenticated = false;
 				this.authToken = "";
+				this.connectionID = 0;
 				this.stopRequestTimer();
 				this.startConnectTimer();
 				this.waiting = false;
@@ -1225,6 +1264,7 @@ class instance extends instance_skel {
 			this.status(this.STATE_ERROR, err);
 			this.authenticated = false;
 			this.authToken = "";
+			this.connectionID = 0;
 			this.stopRequestTimer();
 			this.startConnectTimer();
 			this.waiting = false;
