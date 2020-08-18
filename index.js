@@ -57,14 +57,9 @@ class instance extends instance_skel {
 
 	updateConfig(config) {
 		var reconnect = false;
-		var retime = false;
 
-		if ((config.host != this.config.host) || (config.password != this.config.password)) {
+		if ((config.host != this.config.host) || (config.password != this.config.password) || (config.polling != this.config.polling) || (config.pollingRate != this.config.pollingRate)) {
 			reconnect = true;
-		}
-
-		if ((config.polling != this.config.polling) || (config.pollingRate != this.config.pollingRate)) {
-			retime = true;
 		}
 
 		this.config = config;
@@ -74,19 +69,10 @@ class instance extends instance_skel {
 			this.stopConnectTimer();
 
 			this.initVariables();
-			this.connectionID = 0;
-			this.authenticated = false;
-			this.authToken = "";
-			this.availableClips = [];
+			this.checkFeedbacks('transport_state');
 
 			this.startConnectTimer();
 			this.status(this.STATE_UNKNOWN);
-		}
-		else if (retime) {
-			this.initVariables();
-			if (this.requestTimer !== undefined) {
-				this.startRequestTimer();
-			}
 		}
 	}
 
@@ -880,6 +866,8 @@ class instance extends instance_skel {
 		this.setVariable('CurrentClip', 'N/A');
 		this.setVariable('MediaAvailable', "0%");
 		this.setVariable('SystemName', "N/A");
+
+		this.state['TransportState'] = 0;
 	}
 
 	startConnectTimer() {
