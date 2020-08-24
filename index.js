@@ -64,7 +64,7 @@ class instance extends instance_skel {
 
 		this.config = config;
 
-		if (reconnect) {
+		if ((reconnect) && (this.config.host != undefined) && (this.config.host != "")){
 			this.stopRequestTimer();
 			this.stopConnectTimer();
 
@@ -83,8 +83,9 @@ class instance extends instance_skel {
 		this.init_presets();
 		this.init_feedbacks();
 
-		this.startConnectTimer();
-
+		if((this.config.host != undefined) && (this.config.host != "")){
+			this.startConnectTimer();
+		}
 		this.checkFeedbacks('transport_state');
 
 	}
@@ -871,7 +872,7 @@ class instance extends instance_skel {
 	}
 
 	startConnectTimer() {
-		var timeout = 1000;
+		var timeout = 5000;
 
 		// Stop the timer if it was already running
 		this.stopConnectTimer();
