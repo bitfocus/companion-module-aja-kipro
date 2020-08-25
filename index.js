@@ -43,15 +43,22 @@ class instance extends instance_skel {
 
 		this.actions(); // export actions
 
-		this.addUpgradeScript(function () {
+		this.addUpgradeScript(function (config) {
 			// just an example
-			if (this.config.polling !== undefined) {
-				this.config.polling = false; //Default polling off for existing users
+			if (config.host !== undefined) {
+				config.old_host = config.host;
+			}
+		});
+
+		this.addUpgradeScript(function (config) {
+			if (config.polling == undefined) {
+				config.polling = false; //Default polling off for existing users
 			}
 
-			if (this.config.host !== undefined) {
-				this.config.old_host = this.config.host;
+			if (config.password == undefined){
+				config.password = ""; //Default password to be empty
 			}
+			this.saveConfig();
 		});
 	}
 
@@ -969,7 +976,7 @@ class instance extends instance_skel {
 
 			var extraHeadders = {}
 
-			if (this.config.password !== "") {
+			if (this.authenticated) {
 				extraHeadders["Cookie"] = this.authToken;
 			}
 
@@ -980,7 +987,7 @@ class instance extends instance_skel {
 	doGetClips() {
 		var extraHeadders = {}
 
-		if (this.config.password !== "") {
+		if (this.authenticated) {
 			extraHeadders["Cookie"] = this.authToken;
 		}
 
@@ -993,7 +1000,7 @@ class instance extends instance_skel {
 
 			var extraHeadders = {}
 
-			if (this.config.password !== "") {
+			if (this.authenticated) {
 				extraHeadders["Cookie"] = this.authToken;
 			}
 
@@ -1001,243 +1008,23 @@ class instance extends instance_skel {
 		}
 	}
 
-	handleReply(err, data, response) {
+	handleReply(err, data){
 		var objJson = {};
-		if (data.data) {
-			//let requestPath = data.response.req.connection._httpMessage.path;
-			if (data.response.statusCode === 200) {
-				if (data.data.length) {
-					if (data.data.length > 0) {
-						try {
-							objJson = JSON.parse(data.data.toString());
-							//If connection response
-							if (objJson['connectionid'] != undefined) {
-								this.connectionID = Number(objJson['connectionid']);
-								if (this.connectionID) {
-									this.status(this.STATE_OK);
-									this.log('debug', "Connected");
-									this.doGetClips();
-									this.stopConnectTimer();
-									this.startRequestTimer();
-									// Success
 
-									if (this.config.polling) { //Polling is active so update the variables
-										if (objJson['configevents'] != undefined) { //This will pick up initial values on connection
-											for (let item of objJson['configevents']) {
-												if ('eParamID_DisplayTimecode' in item) {
-													let timecode = item['eParamID_DisplayTimecode'].split(':')
-													this.setVariable('TC_hours', timecode[0]);
-													this.setVariable('TC_min', timecode[1]);
-													this.setVariable('TC_sec', timecode[2]);
-													this.setVariable('TC_frames', timecode[3]);
-												}
-
-												if ('eParamID_TransportCurrentSpeed' in item) {
-													switch (Number(item['eParamID_TransportCurrentSpeed'])) {
-														case 2:
-															this.state['TransportState'] = 4;  //2X Forward
-															break;
-														case 4:
-															this.state['TransportState'] = 5;  //4X Forward
-															break;
-														case 8:
-															this.state['TransportState'] = 6;  //8X Forward
-															break;
-														case 16:
-															this.state['TransportState'] = 7;  //16X Forward
-															break;
-														case 32:
-															this.state['TransportState'] = 21; //32X Forward
-															break;
-														case -1:
-															this.state['TransportState'] = 9;  //Reverse
-															break;
-														case -2:
-															this.state['TransportState'] = 10; //2X Reverse
-															break;
-														case -4:
-															this.state['TransportState'] = 11; //4X Reverse
-															break;
-														case -8:
-															this.state['TransportState'] = 12; //8X Reverse
-															break;
-														case -16:
-															this.state['TransportState'] = 13; //16X Reverse
-															break;
-														case -32:
-															this.state['TransportState'] = 22; //32X Reverse
-															break;
-													}
-													this.setVariable('TransportState', this.states[this.state['TransportState']])
-													this.checkFeedbacks('transport_state');
-												}
-
-												if ('eParamID_TransportState' in item) {
-													let stateNum = Number(item['eParamID_TransportState']);
-													switch (stateNum) {
-														//Cases 3-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
-														case 0: //Unknown
-														case 1: //Idle
-														case 2: //Recording
-														case 3: //Playing Forward
-														case 8: //Forward Step
-														case 14://Reverse Step
-														case 15://Paused
-														case 16://Idle Error
-														case 17://Record Error
-														case 18://Play Error
-														case 19://Pause Error
-														case 20://Shutdown
-															this.state['TransportState'] = stateNum;
-															break;
-													}
-													this.setVariable('TransportState', this.states[this.state['TransportState']])
-													this.checkFeedbacks('transport_state');
-												}
-
-												if ('eParamID_CurrentClip'in item) {
-													this.setVariable('CurrentClip', item['eParamID_CurrentClip']);
-												}
-
-												if ('eParamID_CurrentMediaAvailable' in item) {
-													this.setVariable('MediaAvailable', item['eParamID_CurrentMediaAvailable']+"%");
-												}
-
-												if ('eParamID_SysName' in item) {
-													this.setVariable('SystemName', item['eParamID_SysName']);
-												}
-											}
-										}
-									}
-								}
-								else{
-									this.status(this.STATE_ERROR);
-									this.connectionID = 0;
-									this.log('error', 'Connection Error');
-								}
-							}
-							//Clips response
-							else if (objJson['clips'] != undefined) {
-								this.availableClips = [];
-								for (let clip of objJson['clips']) {
-									this.availableClips.push({id:clip['clipname'], label:clip['clipname']});
-								}
-								this.actions();
-							}
-							//login Response
-							else if (objJson['login'] !== undefined) {
-								if (objJson['login'] === "success") {
-									this.authenticated = true;
-									this.authToken = data.response.headers['set-cookie'][0];
-									this.connectionID = 0;
-									this.log('debug', 'Authenticated');
-								}
-								else if (objJson['login'] === "Login Failed - Passwords did not match") {
-									this.status(this.STATE_ERROR);
-									this.authenticated = false;
-									this.authToken = "";
-									this.connectionID = 0;
-									this.log('error', 'Password does not match');
-								}
-								else{
-									this.status(this.STATE_ERROR);
-									this.authenticated = false;
-									this.authToken = "";
-									this.connectionID = 0;
-									this.log('error', 'Authentication Error');
-								}
-							}
-							//Poll response
-							else if (this.config.polling) { //Polling is active so update the variables
-								for (let item of objJson) {
-									if (item['param_id'] === 'eParamID_DisplayTimecode') {
-										let timecode = item['str_value'].split(':')
-										this.setVariable('TC_hours', timecode[0]);
-										this.setVariable('TC_min', timecode[1]);
-										this.setVariable('TC_sec', timecode[2]);
-										this.setVariable('TC_frames', timecode[3]);
-									}
-									else if (item['param_id'] === 'eParamID_TransportCurrentSpeed') {
-										switch (Number(item['str_value'])) {
-											case 2:
-												this.state['TransportState'] = 4;	//2X Forward
-												break;
-											case 4:
-												this.state['TransportState'] = 5;	//4X Forward
-												break;
-											case 8:
-												this.state['TransportState'] = 6;	//8X Forward
-												break;
-											case 16:
-												this.state['TransportState'] = 7;	//16X Forward
-												break;
-											case 32:
-												this.state['TransportState'] = 21;	//32X Forward
-												break;
-											case -1:
-												this.state['TransportState'] = 9;	//Reverse
-												break;
-											case -2:
-												this.state['TransportState'] = 10;	//2X Reverse
-												break;
-											case -4:
-												this.state['TransportState'] = 11;	//4X Reverse
-												break;
-											case -8:
-												this.state['TransportState'] = 12;	//8X Reverse
-												break;
-											case -16:
-												this.state['TransportState'] = 13;	//16X Reverse
-												break;
-											case -32:
-												this.state['TransportState'] = 22;	//32X Reverse
-												break;
-										}
-										this.setVariable('TransportState', this.states[this.state['TransportState']])
-										this.checkFeedbacks('transport_state');
-									}
-									else if (item['param_id'] === 'eParamID_TransportState') {
-										let stateNum = Number(item['int_value']);
-										switch (stateNum) {
-											//Cases 3-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
-											case 0: //Unknown
-											case 1: //Idle
-											case 2: //Recording
-											case 3: //Playing Forward
-											case 8: //Forward Step
-											case 14://Reverse Step
-											case 15://Paused
-											case 16://Idle Error
-											case 17://Record Error
-											case 18://Play Error
-											case 19://Pause Error
-											case 20://Shutdown
-												this.state['TransportState'] = stateNum;
-												break;
-										}
-										this.setVariable('TransportState', this.states[this.state['TransportState']])
-										this.checkFeedbacks('transport_state');
-									}
-									else if (item['param_id'] === 'eParamID_CurrentClip') {
-										this.setVariable('CurrentClip', item['str_value']);
-									}
-									else if (item['param_id'] === 'eParamID_CurrentMediaAvailable') {
-										this.setVariable('MediaAvailable', item['int_value']+"%");
-									}
-									else if (item['param_id'] === 'eParamID_SysName') {
-										this.setVariable('SystemName', item['str_value']);
-									}
-									else if (item['param_id'] === 'eParamID_MediaUpdated') {
-										this.doGetClips();
-									}
-								}
-							}
-						} catch(error) {}
-					}
-				}
+		if (err) {
+			if(data['error']['code'] == "HPE_UNEXPECTED_CONTENT_LENGTH"){
+				this.log('error', 'Header error. See help file for details');
+				this.config.polling = false;
+				this.authenticated = false;
+				this.authToken = "";
+				this.connectionID = 0;
+				this.stopRequestTimer();
+				this.stopConnectTimer();
+				this.waiting = false;
+				return;
 			}
-			else {
-				this.log('error', 'Status'+data.response.statusCode);
+			else{
+				this.log('error', 'Error connecting to KiPro');
 				this.status(this.STATE_ERROR, err);
 				this.authenticated = false;
 				this.authToken = "";
@@ -1248,18 +1035,257 @@ class instance extends instance_skel {
 				return;
 			}
 		}
-		if (err) {
-			this.log('error', 'Error connecting to KiPro');
-			this.status(this.STATE_ERROR, err);
-			this.authenticated = false;
-			this.authToken = "";
-			this.connectionID = 0;
-			this.stopRequestTimer();
-			this.startConnectTimer();
-			this.waiting = false;
-			return;
-		}
 		else {
+			if (data.data) {
+				if (data.response.statusCode === 200) {
+					if (data.data.length) {
+						if (data.data.length > 0) {
+							try {
+								objJson = JSON.parse(data.data.toString());
+								//If connection response
+								if (objJson['connectionid'] != undefined) {
+									this.connectionID = Number(objJson['connectionid']);
+									if (this.connectionID) {
+										this.status(this.STATE_OK);
+										this.log('debug', "Connected");
+										this.doGetClips();
+										this.stopConnectTimer();
+										this.startRequestTimer();
+										// Success
+
+										if (this.config.polling) { //Polling is active so update the variables
+											if (objJson['configevents'] != undefined) { //This will pick up initial values on connection
+												for (let item of objJson['configevents']) {
+													if ('eParamID_DisplayTimecode' in item) {
+														let timecode = item['eParamID_DisplayTimecode'].split(':')
+														this.setVariable('TC_hours', timecode[0]);
+														this.setVariable('TC_min', timecode[1]);
+														this.setVariable('TC_sec', timecode[2]);
+														this.setVariable('TC_frames', timecode[3]);
+													}
+
+													if ('eParamID_TransportCurrentSpeed' in item) {
+														switch (Number(item['eParamID_TransportCurrentSpeed'])) {
+															case 2:
+																this.state['TransportState'] = 4;  //2X Forward
+																break;
+															case 4:
+																this.state['TransportState'] = 5;  //4X Forward
+																break;
+															case 8:
+																this.state['TransportState'] = 6;  //8X Forward
+																break;
+															case 16:
+																this.state['TransportState'] = 7;  //16X Forward
+																break;
+															case 32:
+																this.state['TransportState'] = 21; //32X Forward
+																break;
+															case -1:
+																this.state['TransportState'] = 9;  //Reverse
+																break;
+															case -2:
+																this.state['TransportState'] = 10; //2X Reverse
+																break;
+															case -4:
+																this.state['TransportState'] = 11; //4X Reverse
+																break;
+															case -8:
+																this.state['TransportState'] = 12; //8X Reverse
+																break;
+															case -16:
+																this.state['TransportState'] = 13; //16X Reverse
+																break;
+															case -32:
+																this.state['TransportState'] = 22; //32X Reverse
+																break;
+														}
+														this.setVariable('TransportState', this.states[this.state['TransportState']])
+														this.checkFeedbacks('transport_state');
+													}
+
+													if ('eParamID_TransportState' in item) {
+														let stateNum = Number(item['eParamID_TransportState']);
+														switch (stateNum) {
+															//Cases 3-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
+															case 0: //Unknown
+															case 1: //Idle
+															case 2: //Recording
+															case 3: //Playing Forward
+															case 8: //Forward Step
+															case 14://Reverse Step
+															case 15://Paused
+															case 16://Idle Error
+															case 17://Record Error
+															case 18://Play Error
+															case 19://Pause Error
+															case 20://Shutdown
+																this.state['TransportState'] = stateNum;
+																break;
+														}
+														this.setVariable('TransportState', this.states[this.state['TransportState']])
+														this.checkFeedbacks('transport_state');
+													}
+
+													if ('eParamID_CurrentClip'in item) {
+														this.setVariable('CurrentClip', item['eParamID_CurrentClip']);
+													}
+
+													if ('eParamID_CurrentMediaAvailable' in item) {
+														this.setVariable('MediaAvailable', item['eParamID_CurrentMediaAvailable']+"%");
+													}
+
+													if ('eParamID_SysName' in item) {
+														this.setVariable('SystemName', item['eParamID_SysName']);
+													}
+												}
+											}
+										}
+									}
+									else{
+										this.status(this.STATE_ERROR);
+										this.connectionID = 0;
+										this.log('error', 'Connection Error');
+									}
+								}
+								//Clips response
+								else if (objJson['clips'] != undefined) {
+									this.availableClips = [];
+									for (let clip of objJson['clips']) {
+										this.availableClips.push({id:clip['clipname'], label:clip['clipname']});
+									}
+									this.actions();
+								}
+								//login Response
+								else if (objJson['login'] !== undefined) {
+									if (objJson['login'] === "success") {
+										console.log(objJson)
+										this.authenticated = true;
+										this.authToken = data.response.headers['set-cookie'][0];
+										this.connectionID = 0;
+										this.log('debug', 'Authenticated');
+									}
+									else if (objJson['login'] === "Login Failed - Passwords did not match") {
+										this.status(this.STATE_ERROR);
+										this.authenticated = false;
+										this.authToken = "";
+										this.connectionID = 0;
+										this.log('error', 'Password does not match');
+									}
+									else{
+										this.status(this.STATE_ERROR);
+										this.authenticated = false;
+										this.authToken = "";
+										this.connectionID = 0;
+										this.log('error', 'Authentication Error');
+									}
+								}
+								//Poll response
+								else if (this.config.polling) { //Polling is active so update the variables
+									for (let item of objJson) {
+										if (item['param_id'] === 'eParamID_DisplayTimecode') {
+											let timecode = item['str_value'].split(':')
+											this.setVariable('TC_hours', timecode[0]);
+											this.setVariable('TC_min', timecode[1]);
+											this.setVariable('TC_sec', timecode[2]);
+											this.setVariable('TC_frames', timecode[3]);
+										}
+										else if (item['param_id'] === 'eParamID_TransportCurrentSpeed') {
+											switch (Number(item['str_value'])) {
+												case 2:
+													this.state['TransportState'] = 4;	//2X Forward
+													break;
+												case 4:
+													this.state['TransportState'] = 5;	//4X Forward
+													break;
+												case 8:
+													this.state['TransportState'] = 6;	//8X Forward
+													break;
+												case 16:
+													this.state['TransportState'] = 7;	//16X Forward
+													break;
+												case 32:
+													this.state['TransportState'] = 21;	//32X Forward
+													break;
+												case -1:
+													this.state['TransportState'] = 9;	//Reverse
+													break;
+												case -2:
+													this.state['TransportState'] = 10;	//2X Reverse
+													break;
+												case -4:
+													this.state['TransportState'] = 11;	//4X Reverse
+													break;
+												case -8:
+													this.state['TransportState'] = 12;	//8X Reverse
+													break;
+												case -16:
+													this.state['TransportState'] = 13;	//16X Reverse
+													break;
+												case -32:
+													this.state['TransportState'] = 22;	//32X Reverse
+													break;
+											}
+											this.setVariable('TransportState', this.states[this.state['TransportState']])
+											this.checkFeedbacks('transport_state');
+										}
+										else if (item['param_id'] === 'eParamID_TransportState') {
+											let stateNum = Number(item['int_value']);
+											switch (stateNum) {
+												//Cases 3-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
+												case 0: //Unknown
+												case 1: //Idle
+												case 2: //Recording
+												case 3: //Playing Forward
+												case 8: //Forward Step
+												case 14://Reverse Step
+												case 15://Paused
+												case 16://Idle Error
+												case 17://Record Error
+												case 18://Play Error
+												case 19://Pause Error
+												case 20://Shutdown
+													this.state['TransportState'] = stateNum;
+													break;
+											}
+											this.setVariable('TransportState', this.states[this.state['TransportState']])
+											this.checkFeedbacks('transport_state');
+										}
+										else if (item['param_id'] === 'eParamID_CurrentClip') {
+											this.setVariable('CurrentClip', item['str_value']);
+										}
+										else if (item['param_id'] === 'eParamID_CurrentMediaAvailable') {
+											this.setVariable('MediaAvailable', item['int_value']+"%");
+										}
+										else if (item['param_id'] === 'eParamID_SysName') {
+											this.setVariable('SystemName', item['str_value']);
+										}
+										else if (item['param_id'] === 'eParamID_MediaUpdated') {
+											this.doGetClips();
+										}
+									}
+								}
+							} catch(error) {
+								this.log('error', 'JSON parsing error');
+								this.status(this.STATE_ERROR, err);
+								this.waiting = false;
+								return;
+							}
+						}
+					}
+				}
+				else {
+					this.log('error', 'Status '+data.response.statusCode);
+					this.status(this.STATE_ERROR, err);
+					this.authenticated = false;
+					this.authToken = "";
+					this.connectionID = 0;
+					this.stopRequestTimer();
+					this.startConnectTimer();
+					this.waiting = false;
+					return;
+				}
+			}
 			this.waiting = false;
 			return;
 		}

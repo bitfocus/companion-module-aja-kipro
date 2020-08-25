@@ -8,6 +8,8 @@ This module will allow you to control the AJA Ki Pro and Ki Pro Ultra series rec
 * Enable or disable polling of the KiPro for feedback items
 * Select a rate to poll the KiPro
 
+Some older KiPro units will output incorrect headers that will result in polling being disabled
+
 ### To use the module
 Add an action to a button and choose the action you wish to use.
 
@@ -63,3 +65,6 @@ Add an action to a button and choose the action you wish to use.
 * Functions
   * Stop and Format
   * Reset Timecode and Record
+
+### Header error
+* Some older KiPro units will output incorrect headers that will result in polling being disabled
