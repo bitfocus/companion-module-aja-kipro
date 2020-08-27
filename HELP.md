@@ -66,5 +66,5 @@ Add an action to a button and choose the action you wish to use.
   * Stop and Format
   * Reset Timecode and Record
 
-### Header error
-* Some older KiPro units will output incorrect headers that will result in polling being disabled
+### Non-compliant header warning
+* Some older KiPro units will return non HTTP compliant headers that will result in a warning in the log and polling being disabled

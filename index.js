@@ -110,20 +110,29 @@ class instance extends instance_skel {
 				type: 'textinput',
 				id: 'host',
 				label: 'Target IP',
-				width: 8,
+				width: 12,
 				regex: this.REGEX_IP,
 				required: true
+			},
+			{
+				type: 'text',
+				id: 'info',
+				width: 12,
+				label: 'Polling',
+				value: 'Enabling polling will allow for feedback variables.<br>Some older KiPro units will return non HTTP compliant headers.<br>This results in a warning in the log and polling being disabled.'
 			},
 			{
 				type: 'checkbox',
 				label: 'Polling',
 				id: 'polling',
+				width: 1,
 				default: true
 			},
 			{
 				type: 'number',
 				label: 'Polling Rate (ms)',
 				id: 'pollingRate',
+				width: 2,
 				min: 10,
 				max: 5000,
 				default: 100,
@@ -884,7 +893,7 @@ class instance extends instance_skel {
 		// Stop the timer if it was already running
 		this.stopConnectTimer();
 
-		this.log('info', "Starting connectTimer");
+		this.log('debug', "Starting connection timer");
 		// Create a reconnect timer to watch the socket. If disconnected try to connect.
 		this.connectTimer = setInterval(function() { //Auth Enabled
 			if (this.config.password !== "") {
@@ -903,7 +912,7 @@ class instance extends instance_skel {
 
 	stopConnectTimer() {
 		if (this.connectTimer !== undefined) {
-			this.log('info', "Stopping connectTimer");
+			this.log('debug', "Stopping connection timer");
 			clearInterval(this.connectTimer);
 			delete this.connectTimer;
 		}
@@ -921,7 +930,7 @@ class instance extends instance_skel {
 			refreshRate = this.config.pollingRate;
 		}
 
-		this.log('info', "Starting requestTimer");
+		this.log('debug', "Starting request timer");
 		this.requestTimer = setInterval(function() {
 			this.doRequestUpdate();
 		}.bind(this), refreshRate);
@@ -929,7 +938,7 @@ class instance extends instance_skel {
 
 	stopRequestTimer() {
 		if (this.requestTimer !== undefined) {
-			this.log('info', "Stopping requestTimer");
+			this.log('debug', "Stopping request timer");
 			clearInterval(this.requestTimer);
 			delete this.requestTimer;
 		}
@@ -1013,8 +1022,10 @@ class instance extends instance_skel {
 
 		if (err) {
 			if(data['error']['code'] == "HPE_UNEXPECTED_CONTENT_LENGTH"){
-				this.log('error', 'Header error. See help file for details');
+				this.log('warn', 'Non-compliant header recieved. Polling disabled. See help file for details');
+				this.status(this.STATE_OK, "No Polling");
 				this.config.polling = false;
+				this.saveConfig();
 				this.authenticated = false;
 				this.authToken = "";
 				this.connectionID = 0;
@@ -1044,228 +1055,22 @@ class instance extends instance_skel {
 								objJson = JSON.parse(data.data.toString());
 								//If connection response
 								if (objJson['connectionid'] != undefined) {
-									this.connectionID = Number(objJson['connectionid']);
-									if (this.connectionID) {
-										this.status(this.STATE_OK);
-										this.log('debug', "Connected");
-										this.doGetClips();
-										this.stopConnectTimer();
-										this.startRequestTimer();
-										// Success
-
-										if (this.config.polling) { //Polling is active so update the variables
-											if (objJson['configevents'] != undefined) { //This will pick up initial values on connection
-												for (let item of objJson['configevents']) {
-													if ('eParamID_DisplayTimecode' in item) {
-														let timecode = item['eParamID_DisplayTimecode'].split(':')
-														this.setVariable('TC_hours', timecode[0]);
-														this.setVariable('TC_min', timecode[1]);
-														this.setVariable('TC_sec', timecode[2]);
-														this.setVariable('TC_frames', timecode[3]);
-													}
-
-													if ('eParamID_TransportCurrentSpeed' in item) {
-														switch (Number(item['eParamID_TransportCurrentSpeed'])) {
-															case 2:
-																this.state['TransportState'] = 4;  //2X Forward
-																break;
-															case 4:
-																this.state['TransportState'] = 5;  //4X Forward
-																break;
-															case 8:
-																this.state['TransportState'] = 6;  //8X Forward
-																break;
-															case 16:
-																this.state['TransportState'] = 7;  //16X Forward
-																break;
-															case 32:
-																this.state['TransportState'] = 21; //32X Forward
-																break;
-															case -1:
-																this.state['TransportState'] = 9;  //Reverse
-																break;
-															case -2:
-																this.state['TransportState'] = 10; //2X Reverse
-																break;
-															case -4:
-																this.state['TransportState'] = 11; //4X Reverse
-																break;
-															case -8:
-																this.state['TransportState'] = 12; //8X Reverse
-																break;
-															case -16:
-																this.state['TransportState'] = 13; //16X Reverse
-																break;
-															case -32:
-																this.state['TransportState'] = 22; //32X Reverse
-																break;
-														}
-														this.setVariable('TransportState', this.states[this.state['TransportState']])
-														this.checkFeedbacks('transport_state');
-													}
-
-													if ('eParamID_TransportState' in item) {
-														let stateNum = Number(item['eParamID_TransportState']);
-														switch (stateNum) {
-															//Cases 3-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
-															case 0: //Unknown
-															case 1: //Idle
-															case 2: //Recording
-															case 3: //Playing Forward
-															case 8: //Forward Step
-															case 14://Reverse Step
-															case 15://Paused
-															case 16://Idle Error
-															case 17://Record Error
-															case 18://Play Error
-															case 19://Pause Error
-															case 20://Shutdown
-																this.state['TransportState'] = stateNum;
-																break;
-														}
-														this.setVariable('TransportState', this.states[this.state['TransportState']])
-														this.checkFeedbacks('transport_state');
-													}
-
-													if ('eParamID_CurrentClip'in item) {
-														this.setVariable('CurrentClip', item['eParamID_CurrentClip']);
-													}
-
-													if ('eParamID_CurrentMediaAvailable' in item) {
-														this.setVariable('MediaAvailable', item['eParamID_CurrentMediaAvailable']+"%");
-													}
-
-													if ('eParamID_SysName' in item) {
-														this.setVariable('SystemName', item['eParamID_SysName']);
-													}
-												}
-											}
-										}
-									}
-									else{
-										this.status(this.STATE_ERROR);
-										this.connectionID = 0;
-										this.log('error', 'Connection Error');
-									}
+									this.processConnection(objJson);
 								}
 								//Clips response
 								else if (objJson['clips'] != undefined) {
-									this.availableClips = [];
-									for (let clip of objJson['clips']) {
-										this.availableClips.push({id:clip['clipname'], label:clip['clipname']});
-									}
-									this.actions();
+									this.processClips(objJson['clips']);
 								}
 								//login Response
 								else if (objJson['login'] !== undefined) {
-									if (objJson['login'] === "success") {
-										console.log(objJson)
-										this.authenticated = true;
-										this.authToken = data.response.headers['set-cookie'][0];
-										this.connectionID = 0;
-										this.log('debug', 'Authenticated');
-									}
-									else if (objJson['login'] === "Login Failed - Passwords did not match") {
-										this.status(this.STATE_ERROR);
-										this.authenticated = false;
-										this.authToken = "";
-										this.connectionID = 0;
-										this.log('error', 'Password does not match');
-									}
-									else{
-										this.status(this.STATE_ERROR);
-										this.authenticated = false;
-										this.authToken = "";
-										this.connectionID = 0;
-										this.log('error', 'Authentication Error');
-									}
+									this.processLogin(objJson['login'], data.response.headers);
 								}
 								//Poll response
 								else if (this.config.polling) { //Polling is active so update the variables
-									for (let item of objJson) {
-										if (item['param_id'] === 'eParamID_DisplayTimecode') {
-											let timecode = item['str_value'].split(':')
-											this.setVariable('TC_hours', timecode[0]);
-											this.setVariable('TC_min', timecode[1]);
-											this.setVariable('TC_sec', timecode[2]);
-											this.setVariable('TC_frames', timecode[3]);
-										}
-										else if (item['param_id'] === 'eParamID_TransportCurrentSpeed') {
-											switch (Number(item['str_value'])) {
-												case 2:
-													this.state['TransportState'] = 4;	//2X Forward
-													break;
-												case 4:
-													this.state['TransportState'] = 5;	//4X Forward
-													break;
-												case 8:
-													this.state['TransportState'] = 6;	//8X Forward
-													break;
-												case 16:
-													this.state['TransportState'] = 7;	//16X Forward
-													break;
-												case 32:
-													this.state['TransportState'] = 21;	//32X Forward
-													break;
-												case -1:
-													this.state['TransportState'] = 9;	//Reverse
-													break;
-												case -2:
-													this.state['TransportState'] = 10;	//2X Reverse
-													break;
-												case -4:
-													this.state['TransportState'] = 11;	//4X Reverse
-													break;
-												case -8:
-													this.state['TransportState'] = 12;	//8X Reverse
-													break;
-												case -16:
-													this.state['TransportState'] = 13;	//16X Reverse
-													break;
-												case -32:
-													this.state['TransportState'] = 22;	//32X Reverse
-													break;
-											}
-											this.setVariable('TransportState', this.states[this.state['TransportState']])
-											this.checkFeedbacks('transport_state');
-										}
-										else if (item['param_id'] === 'eParamID_TransportState') {
-											let stateNum = Number(item['int_value']);
-											switch (stateNum) {
-												//Cases 3-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
-												case 0: //Unknown
-												case 1: //Idle
-												case 2: //Recording
-												case 3: //Playing Forward
-												case 8: //Forward Step
-												case 14://Reverse Step
-												case 15://Paused
-												case 16://Idle Error
-												case 17://Record Error
-												case 18://Play Error
-												case 19://Pause Error
-												case 20://Shutdown
-													this.state['TransportState'] = stateNum;
-													break;
-											}
-											this.setVariable('TransportState', this.states[this.state['TransportState']])
-											this.checkFeedbacks('transport_state');
-										}
-										else if (item['param_id'] === 'eParamID_CurrentClip') {
-											this.setVariable('CurrentClip', item['str_value']);
-										}
-										else if (item['param_id'] === 'eParamID_CurrentMediaAvailable') {
-											this.setVariable('MediaAvailable', item['int_value']+"%");
-										}
-										else if (item['param_id'] === 'eParamID_SysName') {
-											this.setVariable('SystemName', item['str_value']);
-										}
-										else if (item['param_id'] === 'eParamID_MediaUpdated') {
-											this.doGetClips();
-										}
-									}
+									this.processPollingResponse(objJson);
 								}
-							} catch(error) {
+							}
+							catch(error) {
 								this.log('error', 'JSON parsing error');
 								this.status(this.STATE_ERROR, err);
 								this.waiting = false;
@@ -1288,6 +1093,201 @@ class instance extends instance_skel {
 			}
 			this.waiting = false;
 			return;
+		}
+	}
+
+	processCurrentSpeed(speed){
+		var update = false;
+		switch (speed) {
+			case 2:
+				this.state['TransportState'] = 4;	//2X Forward
+				update = true;
+				break;
+			case 4:
+				this.state['TransportState'] = 5;	//4X Forward
+				update = true;
+				break;
+			case 8:
+				this.state['TransportState'] = 6;	//8X Forward
+				update = true;
+				break;
+			case 16:
+				this.state['TransportState'] = 7;	//16X Forward
+				update = true;
+				break;
+			case 32:
+				this.state['TransportState'] = 21;	//32X Forward
+				update = true;
+				break;
+			case -1:
+				this.state['TransportState'] = 9;	//Reverse
+				update = true;
+				break;
+			case -2:
+				this.state['TransportState'] = 10;	//2X Reverse
+				update = true;
+				break;
+			case -4:
+				this.state['TransportState'] = 11;	//4X Reverse
+				update = true;
+				break;
+			case -8:
+				this.state['TransportState'] = 12;	//8X Reverse
+				update = true;
+				break;
+			case -16:
+				this.state['TransportState'] = 13;	//16X Reverse
+				update = true;
+				break;
+			case -32:
+				this.state['TransportState'] = 22;	//32X Reverse
+				update = true;
+				break;
+		}
+		if(update){
+			this.setVariable('TransportState', this.states[this.state['TransportState']])
+			this.checkFeedbacks('transport_state');
+		}
+	}
+
+	processCurrentState(state){
+		switch (state) {
+			//Cases 3-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
+			case 0: //Unknown
+			case 1: //Idle
+			case 2: //Recording
+			case 8: //Forward Step
+			case 14://Reverse Step
+			case 15://Paused
+			case 16://Idle Error
+			case 17://Record Error
+			case 18://Play Error
+			case 19://Pause Error
+			case 20://Shutdown
+				this.state['TransportState'] = state;
+
+				this.setVariable('TransportState', this.states[this.state['TransportState']])
+				this.checkFeedbacks('transport_state');
+				break;
+		}
+	}
+
+	processTimecode(fullTimecode){
+		let timecode = fullTimecode.split(':')
+		this.setVariable('TC_hours', timecode[0]);
+		this.setVariable('TC_min', timecode[1]);
+		this.setVariable('TC_sec', timecode[2]);
+		this.setVariable('TC_frames', timecode[3]);
+	}
+
+	processLogin(loginStatus, headers){
+		if (loginStatus === "success") {
+			this.authenticated = true;
+			this.authToken = headers['set-cookie'][0];
+			this.connectionID = 0;
+			this.log('debug', 'Authenticated');
+		}
+		else if (loginStatus === "Login Failed - Passwords did not match") {
+			this.status(this.STATE_ERROR);
+			this.authenticated = false;
+			this.authToken = "";
+			this.connectionID = 0;
+			this.log('error', 'Password does not match');
+		}
+		else{
+			this.status(this.STATE_ERROR);
+			this.authenticated = false;
+			this.authToken = "";
+			this.connectionID = 0;
+			this.log('error', 'Authentication Error');
+		}
+	}
+
+	processConnection(objJson){
+		this.connectionID = Number(objJson['connectionid']);
+		if (this.connectionID) {
+			this.status(this.STATE_OK);
+			this.log('debug', "Connected");
+			this.doGetClips();
+			this.stopConnectTimer();
+			this.startRequestTimer();
+			// Success
+
+			if (this.config.polling) { //Polling is active so update the variables
+				if (objJson['configevents'] != undefined) { //This will pick up initial values on connection
+					for (let item of objJson['configevents']) {
+						if ('eParamID_DisplayTimecode' in item) {
+							this.processTimecode(item['eParamID_DisplayTimecode']);
+						}
+
+						if ('eParamID_TransportCurrentSpeed' in item) {
+							this.processCurrentSpeed(Number(item['eParamID_TransportCurrentSpeed']));
+						}
+
+						if ('eParamID_TransportState' in item) {
+							this.processCurrentState(Number(item['eParamID_TransportState']));
+						}
+
+						if ('eParamID_CurrentClip'in item) {
+							this.setVariable('CurrentClip', item['eParamID_CurrentClip']);
+						}
+
+						if ('eParamID_CurrentMediaAvailable' in item) {
+							this.setVariable('MediaAvailable', item['eParamID_CurrentMediaAvailable']+"%");
+						}
+
+						if ('eParamID_SysName' in item) {
+							this.setVariable('SystemName', item['eParamID_SysName']);
+						}
+					}
+				}
+			}
+		}
+		else{
+			this.log('error', 'Connection Error');
+			this.status(this.STATE_ERROR);
+			this.authenticated = false;
+			this.authToken = "";
+			this.connectionID = 0;
+			this.stopRequestTimer();
+			this.startConnectTimer();
+			this.waiting = false;
+		}
+	}
+
+	processClips(clips){
+		this.availableClips = [];
+		for (let clip of clips) {
+			this.availableClips.push({id:clip['clipname'], label:clip['clipname']});
+		}
+		this.actions();
+	}
+
+	processPollingResponse(objJson){
+		for (let item of objJson) {
+			switch (item['param_id']) {
+				case 'eParamID_DisplayTimecode':
+					this.processTimecode(item['str_value']);
+					break;
+				case 'eParamID_TransportCurrentSpeed':
+					this.processCurrentSpeed(Number(item['str_value']));
+					break;
+				case 'eParamID_TransportState':
+					this.processCurrentState(Number(item['int_value']));
+					break;
+				case 'eParamID_CurrentClip':
+					this.setVariable('CurrentClip', item['str_value']);
+					break;
+				case 'eParamID_CurrentMediaAvailable':
+					this.setVariable('MediaAvailable', item['int_value']+"%");
+					break;
+				case 'eParamID_SysName':
+					this.setVariable('SystemName', item['str_value']);
+					break;
+				case 'eParamID_MediaUpdated':
+					this.doGetClips();
+					break;
+			}
 		}
 	}
 }
