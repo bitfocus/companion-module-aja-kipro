@@ -15,30 +15,30 @@ class instance extends instance_skel {
 			'TransportState': 0
 		}
 
-		this.states = {
-			0:"Unknown",
-			1:"Idle",
-			2:"Recording",
-			3:"Forward",
-			4:"Forward 2X",
-			5:"Forward 4X",
-			6:"Forward 8X",
-			7:"Forward 16X",
-			21:"Forward 32X",
-			8:"Forward Step",
-			9:"Reverse",
-			10:"Reverse 2X",
-			11:"Reverse 4X",
-			12:"Reverse 8X",
-			13:"Reverse 16X",
-			22:"Reverse 32X",
-			14:"Reverse Step",
-			15:"Paused",
-			16:"Idle Error",
-			17:"Record Error",
-			18:"Play Error",
-			19:"Pause Error",
-			20:"Shutdown",
+		this.t_states = {
+			UNKNOWN:"Unknown",
+			IDLE:"Idle",
+			RECORDING:"Recording",
+			FORWARD:"Forward",
+			FORWARD_2X:"Forward 2X",
+			FORWARD_4X:"Forward 4X",
+			FORWARD_8X:"Forward 8X",
+			FORWARD_16X:"Forward 16X",
+			FORWARD_32X:"Forward 32X",
+			FORWARD_STEP:"Forward Step",
+			REVERSE:"Reverse",
+			REVERSE_2X:"Reverse 2X",
+			REVERSE_4X:"Reverse 4X",
+			REVERSE_8X:"Reverse 8X",
+			REVERSE_16X:"Reverse 16X",
+			REVERSE_32X:"Reverse 32X",
+			REVERSE_STEP:"Reverse Step",
+			PAUSED:"Paused",
+			IDLE_ERROR:"Idle Error",
+			RECORD_ERROR:"Record Error",
+			PLAY_ERROR:"Play Error",
+			PAUSE_ERROR:"Pause Error",
+			SHUTDOWN:"Shutdown"
 		}
 
 		this.actions(); // export actions
@@ -373,7 +373,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: "3"
+							state: 'FORWARD'
 						}
 					},
 					{
@@ -381,7 +381,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(255,255,0),
-							state: "15"
+							state: 'PAUSED'
 						}
 					}
 				]
@@ -409,7 +409,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: "1"
+							state: 'IDLE'
 						}
 					}
 				]
@@ -437,7 +437,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(255,0,0),
-							state: "2"
+							state: 'RECORDING'
 						}
 					}
 				]
@@ -501,7 +501,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,51,0),
-							state: "4"
+							state: 'FORWARD_2X'
 						}
 					},
 					{
@@ -509,7 +509,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,102,0),
-							state: "5"
+							state: 'FORWARD_4X'
 						}
 					},
 					{
@@ -517,7 +517,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,153,0),
-							state: "6"
+							state: 'FORWARD_8X'
 						}
 					},
 					{
@@ -525,7 +525,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,204,0),
-							state: "7"
+							state: 'FORWARD_16X'
 						}
 					},
 					{
@@ -533,7 +533,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: "21"
+							state: 'FORWARD_32X'
 						}
 					}
 				]
@@ -561,7 +561,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,42,0),
-							state: "9" //1X Rev
+							state: 'REVERSE'
 						}
 					},
 					{
@@ -569,7 +569,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,84,0),
-							state: "10" //2X Rev
+							state: 'REVERSE_2X'
 						}
 					},
 					{
@@ -577,7 +577,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,126,0),
-							state: "11" //4X Rev
+							state: 'REVERSE_4X'
 						}
 					},
 					{
@@ -585,7 +585,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,168,0),
-							state: "12" //8X Rev
+							state: 'REVERSE_8X'
 						}
 					},
 					{
@@ -593,7 +593,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,210,0),
-							state: "13" //16X Rev
+							state: 'REVERSE_16X'
 						}
 					},
 					{
@@ -601,7 +601,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: "22" //32X Rev
+							state: 'REVERSE_32X'
 						}
 					}
 				]
@@ -629,7 +629,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: "8"
+							state: 'FORWARD_STEP'
 						}
 					}
 				]
@@ -657,7 +657,7 @@ class instance extends instance_skel {
 						options: {
 							fg: this.rgb(0,0,0),
 							bg: this.rgb(0,255,0),
-							state: "14"
+							state: 'REVERSE_STEP'
 						}
 					}
 				]
@@ -809,31 +809,7 @@ class instance extends instance_skel {
 					label: 'State',
 					id: 'state',
 					default: 1,
-					choices: [
-						{ id: "0", label: "Unknown"},
-						{ id: "1", label: "Idle"},
-						{ id: "2", label: "Recording"},
-						{ id: "3", label: "Forward"},
-						{ id: "4", label: "Forward 2X"},
-						{ id: "5", label: "Forward 4X"},
-						{ id: "6", label: "Forward 8X"},
-						{ id: "7", label: "Forward 16X"},
-						{ id: "21", label: "Forward 32X"},
-						{ id: "8", label: "Forward Step"},
-						{ id: "9", label: "Reverse"},
-						{ id: "10", label: "Reverse 2X"},
-						{ id: "11", label: "Reverse 4X"},
-						{ id: "12", label: "Reverse 8X"},
-						{ id: "13", label: "Reverse 16X"},
-						{ id: "22", label: "Reverse 32X"},
-						{ id: "14", label: "Reverse Step"},
-						{ id: "15", label: "Paused"},
-						{ id: "16", label: "Idle Error"},
-						{ id: "17", label: "Record Error"},
-						{ id: "18", label: "Play Error"},
-						{ id: "19", label: "Pause Error"},
-						{ id: "20", label: "Shutdown"}
-					]
+					choices: Object.keys(this.t_states).map(i => { return {id: i, label: this.t_states[i]} })
 				},//State
 				{
 					type: 'colorpicker',
@@ -855,7 +831,7 @@ class instance extends instance_skel {
 
 	feedback(feedback, bank) {
 		if (feedback.type === 'transport_state') {
-			if (Number(this.state['TransportState']) === Number(feedback.options.state)) {
+			if (this.state['TransportState'] === feedback.options.state) {
 				return { color: feedback.options.fg, bgcolor: feedback.options.bg};
 			}
 		}
@@ -1070,12 +1046,7 @@ class instance extends instance_skel {
 									this.processPollingResponse(objJson);
 								}
 							}
-							catch(error) {
-								this.log('error', 'JSON parsing error');
-								this.status(this.STATE_ERROR, err);
-								this.waiting = false;
-								return;
-							}
+							catch(error) {}
 						}
 					}
 				}
@@ -1100,76 +1071,115 @@ class instance extends instance_skel {
 		var update = false;
 		switch (speed) {
 			case 2:
-				this.state['TransportState'] = 4;	//2X Forward
+				this.state['TransportState'] = 'FORWARD_2X';
 				update = true;
 				break;
 			case 4:
-				this.state['TransportState'] = 5;	//4X Forward
+				this.state['TransportState'] = 'FORWARD_4X';
 				update = true;
 				break;
 			case 8:
-				this.state['TransportState'] = 6;	//8X Forward
+				this.state['TransportState'] = 'FORWARD_8X';
 				update = true;
 				break;
 			case 16:
-				this.state['TransportState'] = 7;	//16X Forward
+				this.state['TransportState'] = 'FORWARD_16X';
 				update = true;
 				break;
 			case 32:
-				this.state['TransportState'] = 21;	//32X Forward
+				this.state['TransportState'] = 'FORWARD_32X';
 				update = true;
 				break;
 			case -1:
-				this.state['TransportState'] = 9;	//Reverse
+				this.state['TransportState'] = 'REVERSE';
 				update = true;
 				break;
 			case -2:
-				this.state['TransportState'] = 10;	//2X Reverse
+				this.state['TransportState'] = 'REVERSE_2X';
 				update = true;
 				break;
 			case -4:
-				this.state['TransportState'] = 11;	//4X Reverse
+				this.state['TransportState'] = 'REVERSE_4X';
 				update = true;
 				break;
 			case -8:
-				this.state['TransportState'] = 12;	//8X Reverse
+				this.state['TransportState'] = 'REVERSE_8X';
 				update = true;
 				break;
 			case -16:
-				this.state['TransportState'] = 13;	//16X Reverse
+				this.state['TransportState'] = 'REVERSE_16X';
 				update = true;
 				break;
 			case -32:
-				this.state['TransportState'] = 22;	//32X Reverse
+				this.state['TransportState'] = 'REVERSE_32X';
 				update = true;
 				break;
 		}
 		if(update){
-			this.setVariable('TransportState', this.states[this.state['TransportState']])
+			this.setVariable('TransportState', this.t_states[this.state['TransportState']])
 			this.checkFeedbacks('transport_state');
 		}
+		return 1;
 	}
 
 	processCurrentState(state){
+		var update = false;
 		switch (state) {
 			//Cases 3-7 and 9-13 are handled by eParamID_TransportCurrentSpeed
-			case 0: //Unknown
-			case 1: //Idle
-			case 2: //Recording
-			case 8: //Forward Step
-			case 14://Reverse Step
-			case 15://Paused
-			case 16://Idle Error
-			case 17://Record Error
-			case 18://Play Error
-			case 19://Pause Error
-			case 20://Shutdown
-				this.state['TransportState'] = state;
-
-				this.setVariable('TransportState', this.states[this.state['TransportState']])
-				this.checkFeedbacks('transport_state');
+			case 0:
+				this.state['TransportState'] = 'UNKNOWN';
+				update = true;
+				break;
+			case 1:
+				this.state['TransportState'] = 'IDLE';
+				update = true;
+				break;
+			case 2:
+				this.state['TransportState'] = 'RECORDING';
+				update = true;
+				break;
+			case 3:
+				this.state['TransportState'] = 'FORWARD';
+				update = true;
+				break;
+			case 8:
+				this.state['TransportState'] = 'FORWARD_STEP';
+				update = true;
+				break;
+			case 14:
+				this.state['TransportState'] = 'REVERSE_STEP';
+				update = true;
+				break;
+			case 15:
+				this.state['TransportState'] = 'PAUSED';
+				update = true;
+				break;
+			case 16:
+				this.state['TransportState'] = 'IDLE_ERROR';
+				update = true;
+				break;
+			case 17:
+				this.state['TransportState'] = 'RECORD_ERROR';
+				update = true;
+				break;
+			case 18:
+				this.state['TransportState'] = 'PLAY_ERROR';
+				update = true;
+				break;
+			case 19:
+				this.state['TransportState'] = 'PAUSE_ERROR';
+				update = true;
+				break;
+			case 20:
+				this.state['TransportState'] = 'SHUTDOWN';
+				update = true;
 				break;
 		}
+		if(update){
+			this.setVariable('TransportState', this.t_states[this.state['TransportState']])
+			this.checkFeedbacks('transport_state');
+		}
+		return 1;
 	}
 
 	processTimecode(fullTimecode){
@@ -1178,6 +1188,7 @@ class instance extends instance_skel {
 		this.setVariable('TC_min', timecode[1]);
 		this.setVariable('TC_sec', timecode[2]);
 		this.setVariable('TC_frames', timecode[3]);
+		return 1;
 	}
 
 	processLogin(loginStatus, headers){
@@ -1201,6 +1212,7 @@ class instance extends instance_skel {
 			this.connectionID = 0;
 			this.log('error', 'Authentication Error');
 		}
+		return 1;
 	}
 
 	processConnection(objJson){
@@ -1253,6 +1265,7 @@ class instance extends instance_skel {
 			this.startConnectTimer();
 			this.waiting = false;
 		}
+		return 1;
 	}
 
 	processClips(clips){
@@ -1261,34 +1274,38 @@ class instance extends instance_skel {
 			this.availableClips.push({id:clip['clipname'], label:clip['clipname']});
 		}
 		this.actions();
+		return 1;
 	}
 
 	processPollingResponse(objJson){
 		for (let item of objJson) {
-			switch (item['param_id']) {
-				case 'eParamID_DisplayTimecode':
-					this.processTimecode(item['str_value']);
-					break;
-				case 'eParamID_TransportCurrentSpeed':
-					this.processCurrentSpeed(Number(item['str_value']));
-					break;
-				case 'eParamID_TransportState':
-					this.processCurrentState(Number(item['int_value']));
-					break;
-				case 'eParamID_CurrentClip':
-					this.setVariable('CurrentClip', item['str_value']);
-					break;
-				case 'eParamID_CurrentMediaAvailable':
-					this.setVariable('MediaAvailable', item['int_value']+"%");
-					break;
-				case 'eParamID_SysName':
-					this.setVariable('SystemName', item['str_value']);
-					break;
-				case 'eParamID_MediaUpdated':
-					this.doGetClips();
-					break;
+			if(item['param_id'] != undefined){
+				switch (item['param_id']) {
+					case 'eParamID_DisplayTimecode':
+						this.processTimecode(item['str_value']);
+						break;
+					case 'eParamID_TransportCurrentSpeed':
+						this.processCurrentSpeed(Number(item['str_value']));
+						break;
+					case 'eParamID_TransportState':
+						this.processCurrentState(Number(item['int_value']));
+						break;
+					case 'eParamID_CurrentClip':
+						this.setVariable('CurrentClip', item['str_value']);
+						break;
+					case 'eParamID_CurrentMediaAvailable':
+						this.setVariable('MediaAvailable', item['int_value']+"%");
+						break;
+					case 'eParamID_SysName':
+						this.setVariable('SystemName', item['str_value']);
+						break;
+					case 'eParamID_MediaUpdated':
+						this.doGetClips();
+						break;
+				}
 			}
 		}
+		return 1;
 	}
 }
 
