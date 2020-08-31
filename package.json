@@ -19,9 +19,9 @@
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
+	"author": "Todd Murphy <murphytodd4@gmail.com>",
 	"contributors": [
-		"Per Røine <per.roine@gmail.com>",
-		"Todd Murphy <murphytodd4@gmail.com>"
+		"Per Røine <per.roine@gmail.com>"
 	],
 	"license": "MIT"
 }
