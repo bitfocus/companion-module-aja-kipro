@@ -294,6 +294,20 @@ class instance extends instance_skel {
 					}
 				]
 			},
+			'setMediaState': {
+				label: 'Media State',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'State',
+						id: 'idx',
+						choices: [
+							{id: '0', label: 'Play/Record'},
+							{id: '1', label: 'LAN'}
+						]
+					}
+				]
+			}
 		});
 	}
 
@@ -349,6 +363,9 @@ class instance extends instance_skel {
 				break;
 			case 'setTimecode':
 				cmd = 'TimecodeValue&value=' + opt.idx;
+				break;
+			case 'setMediaState':
+				cmd = 'MediaState&value=' + opt.idx;
 				break;
 		}
 

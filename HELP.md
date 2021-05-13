@@ -31,6 +31,7 @@ Add an action to a button and choose the action you wish to use.
 * Load Clip By List
 * Loop Clip
 * Set Timecode Value
+* Set Media State
 
 **Available feedback:**
 * Transport State
