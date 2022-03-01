@@ -1187,7 +1187,7 @@ class instance extends instance_skel {
 	}
 
 	processTimecode(fullTimecode){
-		let timecode = fullTimecode.split(':')
+		let timecode = fullTimecode.split(/:|;/)
 		this.setVariable('TC_hours', timecode[0]);
 		this.setVariable('TC_min', timecode[1]);
 		this.setVariable('TC_sec', timecode[2]);
