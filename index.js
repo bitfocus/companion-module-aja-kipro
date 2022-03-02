@@ -148,9 +148,8 @@ class instance extends instance_skel {
 		this.stopConnectTimer();
 	}
 
-	actions(system) {
+	actions() {
 		this.setActions({
-		//this.system.emit('instance_actions', this.id, {
 			'play': {label: 'Play'},
 			'stop': {label: 'Stop'},
 			'rec': {label: 'Record'},

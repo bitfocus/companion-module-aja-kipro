@@ -1,6 +1,6 @@
 {
 	"name": "aja-kipro",
-	"version": "2.0.12",
+	"version": "2.0.13",
 	"legacy": [
 		"kipro"
 	],
@@ -23,5 +23,13 @@
 	"contributors": [
 		"Per Røine <per.roine@gmail.com>"
 	],
-	"license": "MIT"
+	"license": "MIT",
+	"homepage": "https://github.com/bitfocus/companion-module-aja-kipro#readme",
+	"bugs": {
+		"url": "https://github.com/bitfocus/companion-module-aja-kipro/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bitfocus/companion-module-aja-kipro.git"
+	}
 }
