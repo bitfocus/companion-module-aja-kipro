@@ -1,35 +1,20 @@
 {
 	"name": "aja-kipro",
-	"version": "2.0.14",
-	"legacy": [
-		"kipro"
-	],
-	"api_version": "1.0.0",
-	"keywords": [
-		"Recording"
-	],
-	"manufacturer": "AJA",
-	"product": [
-		"Ki Pro",
-		"Ki Pro Ultra"
-	],
-	"shortname": "kipro",
-	"description": "Module to control the AJA KiPro",
+	"version": "3.0.0",
 	"main": "index.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
-	"author": "Todd Murphy <murphytodd4@gmail.com>",
-	"contributors": [
-		"Per Røine <per.roine@gmail.com>"
-	],
 	"license": "MIT",
-	"homepage": "https://github.com/bitfocus/companion-module-aja-kipro#readme",
-	"bugs": {
-		"url": "https://github.com/bitfocus/companion-module-aja-kipro/issues"
-	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/bitfocus/companion-module-aja-kipro.git"
+	},
+	"dependencies": {
+		"@companion-module/base": "~1.4.1",
+		"node-rest-client": "^3.1.1"
+	},
+	"devDependencies": {
+		"@companion-module/tools": "^1.2.1"
 	}
 }
