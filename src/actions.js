@@ -147,6 +147,27 @@ module.exports = {
 			}
 		}
 
+		actions.customClipName = {
+			name: 'Set Custom Clip Name',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Clip Name',
+					id: 'clipname',
+					default: '',
+					useVariables: true
+				}
+			],
+			callback: async function(event) {
+				let clipName = await self.parseVariablesInString(event.options.clipname);
+				let setCmd = 'UseCustomClipName&value=1';
+				self.doCommand(setCmd);
+
+				cmd = 'CustomClipName&value=' + clipName;
+				self.doCommand(cmd);
+			}
+		}
+
 		actions.load = {
 			name: 'Load Clip By Name',
 			options: [
