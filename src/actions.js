@@ -168,6 +168,34 @@ module.exports = {
 			}
 		}
 
+		actions.customClipName = {
+			name: 'Set Channel x Custom Clip Name (Ki Pro Go)',
+			options: [
+				{
+					type: 'number',
+					label: 'Channel Number',
+					id: 'channel',
+					min: 1,
+					max: 4,
+					default: 1
+				},
+				{
+					type: 'textinput',
+					label: 'Clip Name',
+					id: 'clipname',
+					default: '',
+					useVariables: true
+				}
+			],
+			callback: async function(event) {
+				let channelNumber = event.options.channel;
+				let clipName = await self.parseVariablesInString(event.options.clipname);
+
+				cmd = 'Channel_' + channelNumber + '_Clipname&value=' + clipName;
+				self.doCommand(cmd);
+			}
+		}
+
 		actions.load = {
 			name: 'Load Clip By Name',
 			options: [
