@@ -168,7 +168,7 @@ module.exports = {
 			}
 		}
 
-		actions.customClipName = {
+		actions.customClipNameByChannel = {
 			name: 'Set Channel x Custom Clip Name (Ki Pro Go)',
 			options: [
 				{
