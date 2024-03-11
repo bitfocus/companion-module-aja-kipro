@@ -96,6 +96,30 @@ module.exports = {
 			}
 		}
 
+		actions.formatUSB = {
+			name: 'Format USB Drive (Ki Pro Go)',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Drive',
+					id: 'value',
+					default: '5',
+					choices: [
+						{id:"5", label:"USB 1"},
+						{id:"6", label:"USB 2"},
+						{id:"7", label:"USB 3"},
+						{id:"8", label:"USB 4"},
+						{id: "9", label: "USB 5" },
+						{id:"10", label:"All "},
+					]
+				}
+			],
+			callback: async function(event) {
+				cmd = `StorageCommand&value=${event.options.value}&configid=1`;
+				self.doCommand(cmd);
+			}
+		}
+
 		actions.eraseClip = {
 			name: 'Erase Clip By Name',
 			options: [
