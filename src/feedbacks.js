@@ -42,6 +42,37 @@ module.exports = {
             }
         }
 
+        feedbacks['media_state'] = {
+            type: 'boolean',
+            name: 'Change colors based on media state',
+            description: 'Sets the background according to the state of the KiPro media',
+            defaultStyle: {
+                color: foregroundColorBlack,
+                bgcolor: backgroundColorGreen,
+            },
+            options: [
+                {
+                    type: 'dropdown',
+                    label: 'Indicate in X Status',
+                    id: 'state',
+                    default: '0',
+                    choices: [
+                        { id: '0', label: 'Record/Play' },
+                        { id: '1', label: 'Data/LAN' }
+                    ]
+                }
+            ],
+            callback: function (feedback) {
+                let opt = feedback.options;
+
+                if (self.state['MediaState'] === feedback.options.state) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
         self.setFeedbackDefinitions(feedbacks);
     }
 }

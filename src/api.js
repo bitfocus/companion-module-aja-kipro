@@ -361,6 +361,11 @@ module.exports = {
 					case 'eParamID_TransportState':
 						this.processCurrentState(Number(item['int_value']));
 						break;
+					case 'eParamID_MediaState':
+						this.state['MediaState'] = item['str_value'];
+						this.checkVariables();
+						this.checkFeedbacks();
+						break;
 					case 'eParamID_CurrentClip':
 						this.state['CurrentClip'] = item['str_value']
 						break;
