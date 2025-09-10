@@ -21,9 +21,7 @@
 			"email": "josephdadams@gmail.com"
 		}
 	],
-	"legacyIds": [
-		"kipro"
-	],
+	"legacyIds": ["kipro"],
 	"runtime": {
 		"type": "node18",
 		"api": "nodejs-ipc",
@@ -31,11 +29,6 @@
 		"entrypoint": "../index.js"
 	},
 	"manufacturer": "AJA",
-	"products": [
-		"Ki Pro",
-		"Ki Pro Ultra"
-	],
-	"keywords": [
-		"Recording"
-	]
+	"products": ["Ki Pro", "Ki Pro Ultra"],
+	"keywords": ["Recording"]
 }

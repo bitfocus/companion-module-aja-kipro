@@ -2,8 +2,8 @@ const { combineRgb } = require('@companion-module/base')
 
 module.exports = {
 	initPresets() {
-		let self = this;
-		
+		let self = this
+
 		const presets = [
 			{
 				type: 'button',
@@ -19,17 +19,17 @@ module.exports = {
 					{
 						down: [
 							{
-								actionId: 'play'
-							}
+								actionId: 'play',
+							},
 						],
-						up: []
-					}
+						up: [],
+					},
 				],
 				feedbacks: [
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'FORWARD'
+							state: 'FORWARD',
 						},
 						style: {
 							// The style property is only valid for 'boolean' feedbacks, and defines the style change it will have.
@@ -40,15 +40,15 @@ module.exports = {
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'PAUSED'
+							state: 'PAUSED',
 						},
 						style: {
 							// The style property is only valid for 'boolean' feedbacks, and defines the style change it will have.
 							color: combineRgb(255, 255, 255),
 							bgcolor: combineRgb(255, 255, 0),
 						},
-					}
-				]
+					},
+				],
 			},
 			//Stop
 			{
@@ -65,25 +65,25 @@ module.exports = {
 					{
 						down: [
 							{
-								actionId: 'stop'
-							}
+								actionId: 'stop',
+							},
 						],
-						up: []
-					}
+						up: [],
+					},
 				],
 				feedbacks: [
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'IDLE'
+							state: 'IDLE',
 						},
 						style: {
 							// The style property is only valid for 'boolean' feedbacks, and defines the style change it will have.
 							color: combineRgb(255, 255, 255),
 							bgcolor: combineRgb(255, 0, 0),
 						},
-					}
-				]
+					},
+				],
 			},
 			//Record
 			{
@@ -100,25 +100,25 @@ module.exports = {
 					{
 						down: [
 							{
-								actionId: 'rec'
-							}
+								actionId: 'rec',
+							},
 						],
-						up: []
-					}
+						up: [],
+					},
 				],
 				feedbacks: [
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'RECORDING'
+							state: 'RECORDING',
 						},
 						style: {
 							// The style property is only valid for 'boolean' feedbacks, and defines the style change it will have.
 							color: combineRgb(255, 255, 255),
 							bgcolor: combineRgb(255, 0, 0),
 						},
-					}
-				]
+					},
+				],
 			},
 			//Next Clip
 			{
@@ -135,13 +135,13 @@ module.exports = {
 					{
 						down: [
 							{
-								actionId: 'next'
-							}
+								actionId: 'next',
+							},
 						],
-						up: []
-					}
+						up: [],
+					},
 				],
-				feedbacks: []
+				feedbacks: [],
 			},
 			//Previous Clip
 			{
@@ -158,13 +158,13 @@ module.exports = {
 					{
 						down: [
 							{
-								actionId: 'prv'
-							}
+								actionId: 'prv',
+							},
 						],
-						up: []
-					}
+						up: [],
+					},
 				],
-				feedbacks: []
+				feedbacks: [],
 			},
 			//Fast Forward
 			{
@@ -181,64 +181,64 @@ module.exports = {
 					{
 						down: [
 							{
-								actionId: 'ff'
-							}
+								actionId: 'ff',
+							},
 						],
-						up: []
-					}
+						up: [],
+					},
 				],
 				feedbacks: [
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'FORWARD_2X'
+							state: 'FORWARD_2X',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 51, 0),
-						}
+						},
 					},
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'FORWARD_4X'
+							state: 'FORWARD_4X',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 102, 0),
-						}
+						},
 					},
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'FORWARD_8X'
+							state: 'FORWARD_8X',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 153, 0),
-						}
+						},
 					},
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'FORWARD_16X'
+							state: 'FORWARD_16X',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 204, 0),
-						}
+						},
 					},
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'FORWARD_32X'
+							state: 'FORWARD_32X',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 255, 0),
-						}
-					}
-				]
+						},
+					},
+				],
 			},
 			//Rewind
 			{
@@ -255,74 +255,74 @@ module.exports = {
 					{
 						down: [
 							{
-								actionId: 'rev'
-							}
+								actionId: 'rev',
+							},
 						],
-						up: []
-					}
+						up: [],
+					},
 				],
 				feedbacks: [
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'REVERSE'
+							state: 'REVERSE',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 42, 0),
-						}
+						},
 					},
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'REVERSE_2X'
+							state: 'REVERSE_2X',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 84, 0),
-						}
+						},
 					},
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'REVERSE_4X'
+							state: 'REVERSE_4X',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 126, 0),
-						}
+						},
 					},
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'REVERSE_8X'
+							state: 'REVERSE_8X',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 168, 0),
-						}
+						},
 					},
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'REVERSE_16X'
+							state: 'REVERSE_16X',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 210, 0),
-						}
+						},
 					},
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'REVERSE_32X'
+							state: 'REVERSE_32X',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 255, 0),
-						}
-					}
-				]
+						},
+					},
+				],
 			},
 			//Step Forward
 			{
@@ -339,24 +339,24 @@ module.exports = {
 					{
 						down: [
 							{
-								actionId: 'stepF'
-							}
+								actionId: 'stepF',
+							},
 						],
-						up: []
-					}
+						up: [],
+					},
 				],
 				feedbacks: [
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'FORWARD_STEP'
+							state: 'FORWARD_STEP',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 255, 0),
-						}
-					}
-				]
+						},
+					},
+				],
 			},
 			//Step Backwards
 			{
@@ -373,24 +373,24 @@ module.exports = {
 					{
 						down: [
 							{
-								actionId: 'stepB'
-							}
+								actionId: 'stepB',
+							},
 						],
-						up: []
-					}
+						up: [],
+					},
 				],
 				feedbacks: [
 					{
 						feedbackId: 'transport_state',
 						options: {
-							state: 'REVERSE_STEP'
+							state: 'REVERSE_STEP',
 						},
 						style: {
 							color: combineRgb(0, 0, 0),
 							bgcolor: combineRgb(0, 255, 0),
-						}
-					}
-				]
+						},
+					},
+				],
 			},
 			//Full TimeCode
 			{
@@ -398,13 +398,22 @@ module.exports = {
 				category: 'TimeCode',
 				label: 'Full Timecode',
 				style: {
-					text: '$('+this.label+':TC_hours):$('+this.label+':TC_min):$('+this.label+':TC_sec):$('+this.label+':TC_frames)',
+					text:
+						'$(' +
+						this.label +
+						':TC_hours):$(' +
+						this.label +
+						':TC_min):$(' +
+						this.label +
+						':TC_sec):$(' +
+						this.label +
+						':TC_frames)',
 					size: '7',
 					color: combineRgb(255, 255, 255),
 					bgcolor: combineRgb(0, 0, 0),
 				},
 				steps: [],
-				feedbacks: []
+				feedbacks: [],
 			},
 			//TimeCode Hours
 			{
@@ -412,13 +421,13 @@ module.exports = {
 				category: 'TimeCode',
 				label: 'Timecode Hours',
 				style: {
-					text: 'HOURS\\n$('+this.label+':TC_hours)',
+					text: 'HOURS\\n$(' + this.label + ':TC_hours)',
 					size: '14',
 					color: combineRgb(255, 255, 255),
 					bgcolor: combineRgb(0, 0, 0),
 				},
 				steps: [],
-				feedbacks: []
+				feedbacks: [],
 			},
 			//TimeCode Minutes
 			{
@@ -426,13 +435,13 @@ module.exports = {
 				category: 'TimeCode',
 				label: 'Full Minutes',
 				style: {
-					text: 'MIN\\n$('+this.label+':TC_min)',
+					text: 'MIN\\n$(' + this.label + ':TC_min)',
 					size: '14',
 					color: combineRgb(255, 255, 255),
 					bgcolor: combineRgb(0, 0, 0),
 				},
 				steps: [],
-				feedbacks: []
+				feedbacks: [],
 			},
 			//TimeCode Seconds
 			{
@@ -440,13 +449,13 @@ module.exports = {
 				category: 'TimeCode',
 				label: 'Timecode Seconds',
 				style: {
-					text: 'SEC\\n$('+this.label+':TC_sec)',
+					text: 'SEC\\n$(' + this.label + ':TC_sec)',
 					size: '14',
 					color: combineRgb(255, 255, 255),
 					bgcolor: combineRgb(0, 0, 0),
 				},
 				steps: [],
-				feedbacks: []
+				feedbacks: [],
 			},
 			//TimeCode Frames
 			{
@@ -454,13 +463,13 @@ module.exports = {
 				category: 'TimeCode',
 				label: 'Timecode Frames',
 				style: {
-					text: 'FRAMES\\n$('+this.label+':TC_frames)',
+					text: 'FRAMES\\n$(' + this.label + ':TC_frames)',
 					size: '14',
 					color: combineRgb(255, 255, 255),
 					bgcolor: combineRgb(0, 0, 0),
 				},
 				steps: [],
-				feedbacks: []
+				feedbacks: [],
 			},
 			//Stop and Format
 			{
@@ -472,34 +481,34 @@ module.exports = {
 					size: 'auto',
 					color: combineRgb(255, 255, 255),
 					bgcolor: combineRgb(0, 0, 0),
-					relative_delay: true
+					relative_delay: true,
 				},
 				steps: [
 					{
 						down: [
 							{
-								actionId: 'stop'
+								actionId: 'stop',
 							},
 							{
 								actionId: 'stop',
-								delay: 500
+								delay: 500,
 							},
 							{
 								actionId: 'customTake',
-								options:{
-									idx: "0"
+								options: {
+									idx: '0',
 								},
-								delay: 200
+								delay: 200,
 							},
 							{
 								actionId: 'format',
-								delay: 200
-							}
+								delay: 200,
+							},
 						],
-						up: []
-					}
+						up: [],
+					},
 				],
-				feedbacks: []
+				feedbacks: [],
 			},
 			//Reset Timecode and Record
 			{
@@ -511,34 +520,34 @@ module.exports = {
 					size: 'auto',
 					color: combineRgb(255, 255, 255),
 					bgcolor: combineRgb(0, 0, 0),
-					relative_delay: true
+					relative_delay: true,
 				},
 				steps: [
 					{
 						down: [
 							{
 								actionId: 'setTimecode',
-								options:{
-									idx: "1"
+								options: {
+									idx: '1',
 								},
 							},
 							{
 								actionId: 'setTimecode',
 								delay: 10,
-								options:{
-									idx: "0"
+								options: {
+									idx: '0',
 								},
 							},
 							{
 								actionId: 'rec',
-								delay: 10
-							}
+								delay: 10,
+							},
 						],
-						up: []
-					}
+						up: [],
+					},
 				],
-				feedbacks: []
-			}
+				feedbacks: [],
+			},
 		]
 
 		this.setPresetDefinitions(presets)
