@@ -40,6 +40,7 @@ Add an action to a button and choose the action you wish to use.
 **Available feedback:**
 
 - Transport State
+- Media State
 
 **Available Variables:**
 
@@ -48,6 +49,7 @@ Add an action to a button and choose the action you wish to use.
 - Timecode Seconds
 - Timecode Frames
 - Transport State
+- Media State
 - Current Clip Name
 - Remaining Media Available
 - System Name
