@@ -1,6 +1,6 @@
 {
 	"name": "aja-kipro",
-	"version": "3.4.0",
+	"version": "3.5.0",
 	"main": "index.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",

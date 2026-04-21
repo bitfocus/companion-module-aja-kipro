@@ -362,6 +362,13 @@ module.exports = {
 	},
 
 	processPollingResponse(objJson) {
+		//if an array, loop through the array and update variables based on param_id
+		//if not an array, check the name property and update variables based on that
+
+		if (!Array.isArray(objJson)) {
+			objJson = [objJson]
+		}
+
 		for (let item of objJson) {
 			if (item['param_id'] != undefined) {
 				switch (item['param_id']) {
@@ -390,6 +397,16 @@ module.exports = {
 						break
 					case 'eParamID_MediaUpdated':
 						this.doGetClips()
+						break
+				}
+			}
+
+			if (item['name'] != undefined) {
+				switch (item['name']) {
+					case 'eParamID_MediaState':
+						this.state['MediaState'] = item['value']
+						this.checkVariables()
+						this.checkFeedbacks()
 						break
 				}
 			}
@@ -502,6 +519,22 @@ module.exports = {
 						this.config.host +
 						'/json?action=wait_for_config_events&configid=0&connectionid=' +
 						this.connectionID,
+					args,
+					function (data, response) {
+						this.handleReply(null, { data: data, response: response })
+					}.bind(this)
+				)
+				.on(
+					'error',
+					function (error) {
+						this.handleReply(true, { error: error })
+					}.bind(this)
+				)
+
+			//also get mediastate
+			client
+				.get(
+					'http://' + this.config.host + '/json?action=get&paramid=eParamID_MediaState',
 					args,
 					function (data, response) {
 						this.handleReply(null, { data: data, response: response })
