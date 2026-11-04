@@ -12,11 +12,11 @@
 		"url": "git+https://github.com/bitfocus/companion-module-aja-kipro.git"
 	},
 	"dependencies": {
-		"@companion-module/base": "^1.13.2",
+		"@companion-module/base": "~1.15.0",
 		"node-rest-client": "^3.1.1"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.8.0",
+		"@companion-module/tools": "^2.9.0",
 		"prettier": "^3.6.2"
 	}
 }
