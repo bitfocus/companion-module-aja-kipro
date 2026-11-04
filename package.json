@@ -3,7 +3,7 @@
 	"version": "3.5.0",
 	"main": "index.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
+		"test": "node --test test/*.test.js",
 		"format": "prettier -w ."
 	},
 	"license": "MIT",
@@ -12,11 +12,11 @@
 		"url": "git+https://github.com/bitfocus/companion-module-aja-kipro.git"
 	},
 	"dependencies": {
-		"@companion-module/base": "^1.13.2",
+		"@companion-module/base": "~1.15.0",
 		"node-rest-client": "^3.1.1"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.6.1",
+		"@companion-module/tools": "^2.9.0",
 		"prettier": "^3.6.2"
 	}
 }
